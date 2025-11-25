@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    typedRoutes: true,
-  },
-  // sorgt dafür, dass der vault-Ordner mit in die Serverless-Funktion für /api/testcases kommt
+  typedRoutes: true,
   outputFileTracingIncludes: {
     "/api/testcases": ["./vault/**"],
   },
