@@ -8,10 +8,17 @@ export async function GET() {
   try {
     const testcases = loadVaultTestcases();
     return NextResponse.json(testcases);
-  } catch (e) {
-    console.error("Fehler beim Laden der Vault-Testcases:", e);
+  } catch (e: unknown) {
+    console.error("Fehler beim Laden der Testcases:", e);
+
+    const message =
+      e instanceof Error ? e.message : typeof e === "string" ? e : "Unbekannter Fehler";
+
     return NextResponse.json(
-      { error: "Testcases konnten nicht geladen werden." },
+      {
+        error: "Testcases konnten nicht geladen werden.",
+        details: message,
+      },
       { status: 500 }
     );
   }
