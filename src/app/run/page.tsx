@@ -72,20 +72,44 @@ export default function RunSetupPage() {
     }
   }, []);
 
+  const [forcedTestIds, setForcedTestIds] = useState<string[] | null>(null);
   const [testerName, setTesterName] = useState("");
   const [device, setDevice] = useState("");
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const testsParam = params.get("tests");
+    if (!testsParam) return;
+
+    const ids = testsParam
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (ids.length > 0) {
+      setForcedTestIds(ids);
+      setSelectedIds(ids);
+    }
+  }, []);
+
   const uniqueTestcases = useMemo(() => {
     const seen = new Set<string>();
-    return testcases.filter((tc) => {
+
+    const base = forcedTestIds
+      ? testcases.filter((t) => forcedTestIds.includes(t.id))
+      : testcases;
+
+    return base.filter((tc) => {
       if (seen.has(tc.id)) return false;
       seen.add(tc.id);
       return true;
     });
-  }, [testcases]);
+  }, [testcases, forcedTestIds]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -486,7 +510,40 @@ export default function RunSetupPage() {
         </section>
 
         {/* Session Starten */}
-        <section className="flex justify-end">
+        <section className="flex justify-between items-center gap-2">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-slate-200 text-slate-900 text-sm font-medium disabled:opacity-40"
+            onClick={() => {
+              if (selectedIds.length === 0) {
+                alert("Bitte zuerst Tests auswählen, die in den Testplan sollen.");
+                return;
+              }
+              if (typeof window === "undefined") return;
+
+              const baseUrl = `${window.location.origin}/run`;
+              const url = `${baseUrl}?tests=${encodeURIComponent(
+                selectedIds.join(",")
+              )}`;
+
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard
+                  .writeText(url)
+                  .then(() => {
+                    alert("Link zum Testplan wurde in die Zwischenablage kopiert.");
+                  })
+                  .catch(() => {
+                    alert("Konnte den Link nicht automatisch kopieren. URL: " + url);
+                  });
+              } else {
+                alert("Testplan-URL:\n" + url);
+              }
+            }}
+            disabled={selectedIds.length === 0}
+          >
+            Link für Testplan kopieren
+          </button>
+
           <button
             type="button"
             className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-40"
