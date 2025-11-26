@@ -76,8 +76,9 @@ export default function RunSetupPage() {
   const [device, setDevice] = useState("");
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-    const uniqueTestcases = useMemo(() => {
+  const uniqueTestcases = useMemo(() => {
     const seen = new Set<string>();
     return testcases.filter((tc) => {
       if (seen.has(tc.id)) return false;
@@ -86,24 +87,40 @@ export default function RunSetupPage() {
     });
   }, [testcases]);
 
-  // Gefilterte Tests: nach id, title, component, view
-   const filteredTests = useMemo(() => {
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+
+    uniqueTestcases.forEach((t) => {
+      if (Array.isArray(t.testTags)) {
+        t.testTags.forEach((tag) => {
+          const trimmed = tag.trim();
+          if (trimmed.length > 0) {
+            tags.add(trimmed);
+          }
+        });
+      }
+    });
+
+    return Array.from(tags).sort((a, b) => a.localeCompare(b, "de"));
+  }, [uniqueTestcases]);
+
+  const filteredTests = useMemo(() => {
     const f = filter.trim().toLowerCase();
-    if (!f) return uniqueTestcases;
 
     return uniqueTestcases.filter((t) => {
-      const haystack = [
-        t.id,
-        t.title,
-        t.component,
-        t.view,
-      ]
+      const haystack = [t.id, t.title, t.component, t.view]
         .join(" ")
         .toLowerCase();
+      const matchesText = !f || haystack.includes(f);
 
-      return haystack.includes(f);
+      const tags: string[] = Array.isArray(t.testTags) ? t.testTags : [];
+      const matchesTag =
+        selectedTags.length === 0 ||
+        tags.some((tag) => selectedTags.includes(tag));
+
+      return matchesText && matchesTag;
     });
-  }, [filter, uniqueTestcases]);
+  }, [filter, uniqueTestcases, selectedTags]);
 
   function toggleSelection(id: string) {
     setSelectedIds((prev) =>
@@ -385,6 +402,40 @@ export default function RunSetupPage() {
               </button>
             </div>
           </div>
+
+          {allTags.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-slate-700 mb-1">
+                Tags (zum Filtern anklicken, Mehrfachauswahl möglich):
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((tag) => {
+                  const isActive = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setSelectedTags((current) =>
+                          current.includes(tag)
+                            ? current.filter((t) => t !== tag)
+                            : [...current, tag]
+                        )
+                      }
+                      className={[
+                        "px-3 py-1 rounded-full border text-xs font-medium transition",
+                        isActive
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100",
+                      ].join(" ")}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <p className="text-xs text-slate-700">
             Gefundene Tests: {filteredTests.length} • Ausgewählt:{" "}

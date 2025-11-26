@@ -16,6 +16,7 @@ export type VaultTestCase = {
   component: string;    // z.B. "RcPro" oder "Lichtsensor"
   view: string;
   precondition: string;
+  testTags?: string[];  // Tags aus den Markdown-Properties (z.B. ["Single Config", "Regression"])
   steps: VaultTestStep[];
 };
 
@@ -110,6 +111,21 @@ export function loadVaultTestcases(): VaultTestCase[] {
 
       const title = (data.title || fileName).toString();
 
+      // testTags aus Frontmatter normalisieren (Array oder String)
+      const rawTags = (data as any).testTags;
+      let testTags: string[] | undefined = undefined;
+
+      if (Array.isArray(rawTags)) {
+        testTags = rawTags
+          .map((t: unknown) => String(t).trim())
+          .filter((t) => t.length > 0);
+      } else if (typeof rawTags === "string") {
+        const trimmed = rawTags.trim();
+        if (trimmed.length > 0) {
+          testTags = [trimmed];
+        }
+      }
+
       const steps = parseStepsFromMarkdown(content, id);
 
       return {
@@ -118,6 +134,7 @@ export function loadVaultTestcases(): VaultTestCase[] {
         component,
         view,
         precondition,
+        testTags,
         steps,
       } as VaultTestCase;
     })
