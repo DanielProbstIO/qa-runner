@@ -35,16 +35,85 @@ type SessionRun = {
   >;
 };
 
+// --- Testcase & Step Meta aus der API ---
+type VaultStepMeta = {
+  id: string;
+  from?: string;
+  action?: string;
+  expected?: string;
+};
+
+type VaultTestcaseMeta = {
+  id: string;
+  steps?: VaultStepMeta[];
+};
+
 export default function ResultPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : (params.id as string);
 
   const [ready, setReady] = useState(false);
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [testcases, setTestcases] = useState<VaultTestcaseMeta[] | null>(null);
 
   useEffect(() => {
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    async function loadTestcases() {
+      try {
+        const res = await fetch("/api/testcases");
+        if (!res.ok) {
+          console.warn(
+            "Konnte Testcases für Detailansicht nicht laden:",
+            res.status,
+            res.statusText
+          );
+          return;
+        }
+        const data = await res.json();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data.testcases)
+          ? data.testcases
+          : null;
+        if (list) {
+          setTestcases(
+            list.map((t: any) => ({
+              id: t.id,
+              steps: Array.isArray(t.steps)
+                ? t.steps.map((s: any) => ({
+                    id: String(s.id),
+                    from: s.from,
+                    action: s.action,
+                    expected: s.expected,
+                  }))
+                : [],
+            }))
+          );
+        }
+      } catch (e) {
+        console.error(
+          "Fehler beim Laden der Testcases für Detailansicht:",
+          e
+        );
+      }
+    }
+
+    loadTestcases();
+  }, []);
+
+  function getStepMeta(stepId: string): VaultStepMeta | null {
+    if (!testcases || testcases.length === 0) return null;
+
+    const testId = stepId.split(".")[0];
+    const tc = testcases.find((t) => t.id === testId);
+    if (!tc || !tc.steps || tc.steps.length === 0) return null;
+
+    return tc.steps.find((s) => s.id === stepId) ?? null;
+  }
 
   if (!ready) {
     return (
@@ -217,8 +286,8 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="flex justify-end mt-2">
-            <label className="flex items-center gap-2 text-xs text-slate-700">
+          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 className="rounded border-slate-300"
@@ -226,6 +295,15 @@ export default function ResultPage() {
                 onChange={(e) => setShowOnlyErrors(e.target.checked)}
               />
               Nur Fehler (NOK) anzeigen
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300"
+                checked={showDetails}
+                onChange={(e) => setShowDetails(e.target.checked)}
+              />
+              Mehr Details zu jedem Schritt anzeigen
             </label>
           </div>
 
@@ -292,38 +370,76 @@ export default function ResultPage() {
 
                   {steps.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {steps.map(([stepId, s]) => (
-                        <div
-                          key={stepId}
-                          className={`p-2 rounded border text-sm text-black ${
-                            s.status === "ok"
-                              ? "bg-green-50 border-green-200"
-                              : s.status === "nok"
-                              ? "bg-red-50 border-red-200"
-                              : "bg-slate-100 border-slate-200"
-                          }`}
-                        >
-                          <p className="font-semibold">
-                            {stepId} — {s.status.toUpperCase()}
-                          </p>
-                          {s.comment && (
-                            <p className="mt-1">
-                              <span className="font-semibold">
-                                Kommentar:
-                              </span>{" "}
-                              {s.comment}
+                      {steps.map(([stepId, s]) => {
+                        const meta = showDetails ? getStepMeta(stepId) : null;
+
+                        return (
+                          <div
+                            key={stepId}
+                            className={`p-2 rounded border text-sm text-black ${
+                              s.status === "ok"
+                                ? "bg-green-50 border-green-200"
+                                : s.status === "nok"
+                                ? "bg-red-50 border-red-200"
+                                : "bg-slate-100 border-slate-200"
+                            }`}
+                          >
+                            <p className="font-semibold">
+                              {stepId} — {s.status.toUpperCase()}
                             </p>
-                          )}
-                          {s.screenshotUrl && (
-                            <p className="mt-1">
-                              <span className="font-semibold">
-                                Screenshot:
-                              </span>{" "}
-                              {s.screenshotUrl}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+
+                            {showDetails && meta && (
+                              <div className="mt-1 text-xs text-slate-800 space-y-0.5">
+                                {meta.from && (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Ausgangspunkt:
+                                    </span>{" "}
+                                    {meta.from}
+                                  </p>
+                                )}
+                                {meta.action && (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Vorgang:
+                                    </span>{" "}
+                                      {meta.action}
+                                  </p>
+                                )}
+                                {meta.expected && (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Erwartetes Verhalten:
+                                    </span>{" "}
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: meta.expected,
+                                      }}
+                                    />
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {s.comment && (
+                              <p className="mt-1">
+                                <span className="font-semibold">
+                                  Kommentar:
+                                </span>{" "}
+                                {s.comment}
+                              </p>
+                            )}
+                            {s.screenshotUrl && (
+                              <p className="mt-1">
+                                <span className="font-semibold">
+                                  Screenshot:
+                                </span>{" "}
+                                {s.screenshotUrl}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -400,8 +516,8 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="flex justify-end mt-2">
-            <label className="flex items-center gap-2 text-xs text-slate-700">
+          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 className="rounded border-slate-300"
@@ -410,39 +526,83 @@ export default function ResultPage() {
               />
               Nur Fehler (NOK) anzeigen
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300"
+                checked={showDetails}
+                onChange={(e) => setShowDetails(e.target.checked)}
+              />
+              Mehr Details zu jedem Schritt anzeigen
+            </label>
           </div>
 
           <section className="space-y-3 mt-4">
-            {steps.map(([stepId, info]) => (
-              <div
-                key={stepId}
-                className={`p-3 rounded border text-black ${
-                  info.status === "ok"
-                    ? "bg-green-100 border-green-300"
-                    : info.status === "nok"
-                    ? "bg-red-100 border-red-300"
-                    : "bg-slate-100 border-slate-300"
-                }`}
-              >
-                <p className="font-semibold">
-                  {stepId} — {info.status.toUpperCase()}
-                </p>
+            {steps.map(([stepId, info]) => {
+              const meta = showDetails ? getStepMeta(stepId) : null;
 
-                {info.comment && (
-                  <p className="mt-1 text-sm">
-                    <span className="font-semibold">Kommentar:</span>{" "}
-                    {info.comment}
+              return (
+                <div
+                  key={stepId}
+                  className={`p-3 rounded border text-black ${
+                    info.status === "ok"
+                      ? "bg-green-100 border-green-300"
+                      : info.status === "nok"
+                      ? "bg-red-100 border-red-300"
+                      : "bg-slate-100 border-slate-300"
+                  }`}
+                >
+                  <p className="font-semibold">
+                    {stepId} — {info.status.toUpperCase()}
                   </p>
-                )}
 
-                {info.screenshotUrl && (
-                  <p className="mt-1 text-sm">
-                    <span className="font-semibold">Screenshot:</span>{" "}
-                    {info.screenshotUrl}
-                  </p>
-                )}
-              </div>
-            ))}
+                  {showDetails && meta && (
+                    <div className="mt-1 text-xs text-slate-800 space-y-0.5">
+                      {meta.from && (
+                        <p>
+                          <span className="font-semibold">
+                            Ausgangspunkt:
+                          </span>{" "}
+                          {meta.from}
+                        </p>
+                      )}
+                      {meta.action && (
+                        <p>
+                          <span className="font-semibold">Vorgang:</span>{" "}
+                          {meta.action}
+                        </p>
+                      )}
+                      {meta.expected && (
+                        <p>
+                          <span className="font-semibold">
+                            Erwartetes Verhalten:
+                          </span>{" "}
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: meta.expected,
+                            }}
+                          />
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {info.comment && (
+                    <p className="mt-1 text-sm">
+                      <span className="font-semibold">Kommentar:</span>{" "}
+                      {info.comment}
+                    </p>
+                  )}
+
+                  {info.screenshotUrl && (
+                    <p className="mt-1 text-sm">
+                      <span className="font-semibold">Screenshot:</span>{" "}
+                      {info.screenshotUrl}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
             {showOnlyErrors && steps.length === 0 && (
               <p className="text-xs text-slate-600">
                 Keine NOK-Schritte in diesem Testlauf.
