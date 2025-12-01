@@ -266,7 +266,7 @@ export default function ResultPage() {
               )}
             </header>
 
-            <div className="mt-1 flex flex-col items-end gap-2">
+            <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
               <button
                 type="button"
                 onClick={() =>
@@ -286,7 +286,7 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700">
+          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700 print:hidden">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -496,7 +496,7 @@ export default function ResultPage() {
               )}
             </header>
 
-            <div className="mt-1 flex flex-col items-end gap-2">
+            <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
               <button
                 type="button"
                 onClick={() =>
@@ -516,7 +516,7 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700">
+          <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700 print:hidden">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
