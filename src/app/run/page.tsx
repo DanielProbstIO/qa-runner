@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VaultTestCase } from "@/lib/vault-testcases";
 
+
 type TestCase = VaultTestCase;
+
+type SortKey = "id" | "title" | "component" | "view";
 
 type TestSession = {
   id: string;
@@ -78,6 +81,8 @@ export default function RunSetupPage() {
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>("id");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -146,6 +151,55 @@ export default function RunSetupPage() {
     });
   }, [filter, uniqueTestcases, selectedTags]);
 
+  const allFilteredSelected =
+    filteredTests.length > 0 &&
+    filteredTests.every((t) => selectedIds.includes(t.id));
+
+  const handleToggleAllFiltered = () => {
+    setSelectedIds((prev) => {
+      if (allFilteredSelected) {
+        // gefilterte Tests aus der Auswahl entfernen, andere Auswahl behalten
+        const filteredIds = new Set(filteredTests.map((t) => t.id));
+        return prev.filter((id) => !filteredIds.has(id));
+      } else {
+        // alle gefilterten Tests zur Auswahl hinzufügen
+        const merged = new Set(prev);
+        filteredTests.forEach((t) => merged.add(t.id));
+        return Array.from(merged);
+      }
+    });
+  };
+
+  const sortedTests = useMemo(() => {
+    const arr = [...filteredTests];
+
+    arr.sort((a, b) => {
+      const getVal = (t: TestCase) => {
+        switch (sortKey) {
+          case "id":
+            return t.id ?? "";
+          case "title":
+            return t.title ?? "";
+          case "component":
+            return t.component ?? "";
+          case "view":
+            return t.view ?? "";
+          default:
+            return t.id ?? "";
+        }
+      };
+
+      const av = getVal(a).toString().toLowerCase();
+      const bv = getVal(b).toString().toLowerCase();
+
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return arr;
+  }, [filteredTests, sortKey, sortDir]);
+
   function toggleSelection(id: string) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -158,6 +212,18 @@ export default function RunSetupPage() {
 
   function handleClearSelection() {
     setSelectedIds([]);
+  }
+
+  function handleSort(key: SortKey) {
+    setSortKey((prevKey) => {
+      if (prevKey === key) {
+        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+        return prevKey;
+      } else {
+        setSortDir("asc");
+        return key;
+      }
+    });
   }
 
   function handleResumeSession() {
@@ -472,15 +538,70 @@ export default function RunSetupPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-100 text-left text-xs uppercase text-slate-700">
               <tr>
-                <th className="px-3 py-2 w-10">✓</th>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Titel</th>
-                <th className="px-3 py-2">Komponente</th>
-                <th className="px-3 py-2">View</th>
+                <th className="px-3 py-2 w-10">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300"
+                    checked={allFilteredSelected}
+                    onChange={handleToggleAllFiltered}
+                  />
+                </th>
+                <th
+                  className="px-3 py-2 cursor-pointer select-none"
+                  onClick={() => handleSort("id")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    ID
+                    {sortKey === "id" && (
+                      <span className="text-[10px]">
+                        {sortDir === "asc" ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </span>
+                </th>
+                <th
+                  className="px-3 py-2 cursor-pointer select-none"
+                  onClick={() => handleSort("title")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Titel
+                    {sortKey === "title" && (
+                      <span className="text-[10px]">
+                        {sortDir === "asc" ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </span>
+                </th>
+                <th
+                  className="px-3 py-2 cursor-pointer select-none"
+                  onClick={() => handleSort("component")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Komponente
+                    {sortKey === "component" && (
+                      <span className="text-[10px]">
+                        {sortDir === "asc" ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </span>
+                </th>
+                <th
+                  className="px-3 py-2 cursor-pointer select-none"
+                  onClick={() => handleSort("view")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    View
+                    {sortKey === "view" && (
+                      <span className="text-[10px]">
+                        {sortDir === "asc" ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredTests.map((t) => {
+              {sortedTests.map((t) => {
                 const checked = selectedIds.includes(t.id);
                 return (
                   <tr
