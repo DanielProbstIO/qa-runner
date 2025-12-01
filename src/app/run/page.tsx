@@ -214,17 +214,16 @@ export default function RunSetupPage() {
     setSelectedIds([]);
   }
 
-  function handleSort(key: SortKey) {
-    setSortKey((prevKey) => {
-      if (prevKey === key) {
-        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
-        return prevKey;
-      } else {
-        setSortDir("asc");
-        return key;
-      }
-    });
+ function handleSort(key: SortKey) {
+  if (sortKey === key) {
+    // Gleiches Feld → Richtung togglen
+    setSortDir(sortDir === "asc" ? "desc" : "asc");
+  } else {
+    // Neues Feld → Richtung zurück auf asc
+    setSortKey(key);
+    setSortDir("asc");
   }
+}
 
   function handleResumeSession() {
     if (!activeSession) return;
