@@ -20,8 +20,17 @@ export type VaultTestCase = {
   steps: VaultTestStep[];
 };
 
-// Wurzel deines Vaults: qa-runner/vault/BegaSmartTests
-const TESTS_DIR = path.join(process.cwd(), "vault", "BegaSmartTests");
+// Wurzel deines Vaults: standardmäßig qa-runner/vault/BegaSmartTests
+const DEFAULT_VAULT_ROOT = path.join(process.cwd(), "vault", "BegaSmartTests");
+
+const TESTS_DIR =
+  process.env.VAULT_PATH && process.env.VAULT_PATH.trim().length > 0
+    ? path.resolve(process.env.VAULT_PATH)
+    : DEFAULT_VAULT_ROOT;
+
+// Optionales Debug-Logging – kann später entfernt werden
+// eslint-disable-next-line no-console
+console.log("[vault-testcases] Verwende TESTS_DIR:", TESTS_DIR);
 
 // Alle .md-Dateien rekursiv finden
 function findMarkdownFiles(dir: string): string[] {
