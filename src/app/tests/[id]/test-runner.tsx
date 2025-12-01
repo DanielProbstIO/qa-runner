@@ -222,7 +222,7 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
                   {/* Erwartetes Verhalten + Kommentar + Screenshot */}
                   <td className="px-3 py-2 text-xs text-slate-900 space-y-2">
-                    <p>{step.expected || step.erwartet || ""}</p>
+                    <p dangerouslySetInnerHTML={{ __html: step.expected || step.erwartet || "" }} />
                     <div className="space-y-1">
                       <label className="block text-[10px] font-semibold text-slate-700">
                         Kommentar
