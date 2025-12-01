@@ -105,15 +105,13 @@ export function loadVaultTestcases(): VaultTestCase[] {
       // Dateiname ohne .md als Fallback-Titel
       const fileName = path.basename(filePath, path.extname(filePath));
 
-      // Ordnername als Fallback-Komponente, falls im Frontmatter nichts steht
-      const folderName = path.basename(path.dirname(filePath));
+      // Komponente nur aus dem Frontmatter; wenn nicht gesetzt, bleibt sie leer
+      const rawComponent = (data.component ?? data.componente) as unknown;
 
       const component =
-        (data.component ||
-          data.componente || // dein Beispiel
-          folderName ||
-          ""
-        ).toString();
+        rawComponent !== undefined && rawComponent !== null
+          ? String(rawComponent)
+          : "";
 
       const view = (data.view || "").toString();
       const precondition = (data.vorbedingung || data.precondition || "").toString();
