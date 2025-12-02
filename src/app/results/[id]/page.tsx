@@ -332,6 +332,15 @@ export default function ResultPage() {
               const meta = session!.testMeta?.[testId];
               const title = meta?.title ?? testId;
 
+              const normalizeReference = (raw: string | undefined): string => {
+                if (!raw) {
+                  return `${testId}`;
+                }
+
+                // Ersetze "**`= this.testCaseId`**" durch die Test-ID
+                return raw.replace(/\*\*`= this\.testCaseId`\*\*/g, testId);
+              };
+
               return (
                 <div
                   key={testId}
@@ -403,7 +412,7 @@ export default function ResultPage() {
                                     <span className="font-semibold">
                                       Vorgang:
                                     </span>{" "}
-                                      {meta.action}
+                                      {normalizeReference(meta.action)}
                                   </p>
                                 )}
                                 {meta.expected && (
