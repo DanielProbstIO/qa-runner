@@ -28,22 +28,15 @@ export default function TestRunner({ test }: TestRunnerProps) {
   );
 
   /**
-   * Normalisiert Referenzstrings aus dem Markdown (z.B. **`= this.testCaseId`**.1)
-   * zu einer stabilen Referenz wie "ATC017.1".
+   * Ersetzt alle Vorkommen von "**`= this.testCaseId`**" durch die aktuelle Test-ID
    */
-  const normalizeReference = (raw: string | undefined, index: number): string => {
+  const normalizeReference = (raw: string | undefined): string => {
     if (!raw) {
-      return `${test.id}.${index + 1}`;
+      return `${test.id}`;
     }
 
-    // Dataview-Form wie: **`= this.testCaseId`**.1
-    // Wir extrahieren die Endziffer und bauen "ATC017.1" daraus.
-    const match = raw.match(/this\.testCaseId.*?\.([0-9]+)/);
-    if (match) {
-      return `${test.id}.${match[1]}`;
-    }
-
-    return raw;
+    // Ersetze "**`= this.testCaseId`**" durch die Test-ID
+    return raw.replace(/\*\*`= this\.testCaseId`\*\*/g, test.id);
   };
 
   function makeStepKey(step: any, index: number): string {
@@ -53,7 +46,7 @@ export default function TestRunner({ test }: TestRunnerProps) {
       step.id;
 
     if (typeof raw === "string") {
-      return normalizeReference(raw, index);
+      return normalizeReference(raw);
     }
 
     // Fallback: reine Positions-basierte ID
@@ -198,12 +191,7 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
                   {/* Referenz */}
                   <td className="px-3 py-2 text-xs font-mono text-slate-900">
-                    {normalizeReference(
-                      (step.reference as string | undefined) ||
-                        (step.ref as string | undefined) ||
-                        `${test.id}.${index + 1}`,
-                      index
-                    )}
+                    {normalizeReference((step.reference || step.ref || ""))}
                   </td>
 
                   {/* Ausgangspunkt */}
@@ -217,7 +205,7 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
                   {/* Vorgang */}
                   <td className="px-3 py-2 text-xs text-slate-900">
-                    {step.action || step.vorgang || ""}
+                    {normalizeReference((step.action || step.vorgang || ""))}
                   </td>
 
                   {/* Erwartetes Verhalten + Kommentar + Screenshot */}
