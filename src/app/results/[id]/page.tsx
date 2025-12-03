@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 type StepResult = {
-  status: "pending" | "ok" | "nok";
+  status: "pending" | "ok" | "nok" | "NA";
   comment: string;
   screenshotUrl: string;
 };
@@ -324,6 +324,9 @@ export default function ResultPage() {
               const nokCount = allSteps.filter(
                 ([, s]) => s.status === "nok"
               ).length;
+              const naCount = allSteps.filter(
+                ([, s]) => s.status === "NA"
+              ).length;
 
               const steps = showOnlyErrors
                 ? allSteps.filter(([, s]) => s.status === "nok")
@@ -374,6 +377,7 @@ export default function ResultPage() {
                     <div className="text-sm font-semibold flex gap-4">
                       <span className="text-green-700">OK: {okCount}</span>
                       <span className="text-red-700">NOK: {nokCount}</span>
+                      <span className="text-orange-700">NA: {naCount}</span>
                     </div>
                   </div>
 
@@ -390,6 +394,8 @@ export default function ResultPage() {
                                 ? "bg-green-50 border-green-200"
                                 : s.status === "nok"
                                 ? "bg-red-50 border-red-200"
+                                : s.status === "NA"
+                                ? "bg-orange-50 border-orange-200"
                                 : "bg-slate-100 border-slate-200"
                             }`}
                           >
@@ -558,6 +564,8 @@ export default function ResultPage() {
                       ? "bg-green-100 border-green-300"
                       : info.status === "nok"
                       ? "bg-red-100 border-red-300"
+                      : info.status === "NA"
+                      ? "bg-orange-100 border-orange-300"
                       : "bg-slate-100 border-slate-300"
                   }`}
                 >

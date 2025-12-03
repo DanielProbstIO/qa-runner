@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VaultTestCase } from "@/lib/vault-testcases";
 
-type StepStatus = "pending" | "ok" | "nok";
+type StepStatus = "pending" | "ok" | "nok" | "NA";
 
 type StepResult = {
   status: StepStatus;
@@ -185,6 +185,20 @@ export default function TestRunner({ test }: TestRunnerProps) {
                         }
                       >
                         NOK
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateStepResult(key, { status: "NA" })
+                        }
+                        className={
+                          "px-2 py-1 text-xs rounded-md border " +
+                          (result.status === "NA"
+                            ? "bg-orange-700 text-white border-orange-800"
+                            : "bg-white text-orange-700 border-orange-300")
+                        }
+                      >
+                        NA
                       </button>
                     </div>
                   </td>
