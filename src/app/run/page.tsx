@@ -13,6 +13,7 @@ type TestSession = {
   id: string;
   testerName: string;
   device: string;
+  buildVersion?: string;
   createdAt: string;
   testIds: string[];
   currentIndex?: number;
@@ -77,6 +78,7 @@ export default function RunSetupPage() {
 
   const [forcedTestIds, setForcedTestIds] = useState<string[] | null>(null);
   const [testerName, setTesterName] = useState("");
+  const [buildVersion, setBuildVersion] = useState("");
   const [device, setDevice] = useState("");
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -321,6 +323,7 @@ export default function RunSetupPage() {
       id: sessionId,
       testerName: testerName.trim(),
       device: device.trim(),
+      buildVersion: buildVersion.trim(),
       createdAt,
       testIds: orderedTestIds,
       currentIndex: 0,
@@ -388,9 +391,17 @@ export default function RunSetupPage() {
                 )}
                 {activeSession.device && (
                   <p className="text-xs text-blue-900">
-                    Gerät/Version:{" "}
+                    Gerät:{" "}
                     <span className="font-semibold">
                       {activeSession.device}
+                    </span>
+                  </p>
+                )}
+                {activeSession.buildVersion && (
+                  <p className="text-xs text-blue-900">
+                    Build-Version:{" "}
+                    <span className="font-semibold">
+                      {activeSession.buildVersion}
                     </span>
                   </p>
                 )}
@@ -440,7 +451,7 @@ export default function RunSetupPage() {
         )}
 
         {/* Meta-Infos zur Session */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-black">
               Tester-Name
@@ -455,13 +466,25 @@ export default function RunSetupPage() {
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-black">
-              Gerät / Version
+              Gerät
             </label>
             <input
               className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
               value={device}
               onChange={(e) => setDevice(e.target.value)}
-              placeholder="z.B. iPhone 15 / App 1.0.3"
+              placeholder="z.B. iPhone 15"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-black">
+              Build-Version
+            </label>
+            <input
+              className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
+              value={buildVersion}
+              onChange={(e) => setBuildVersion(e.target.value)}
+              placeholder="z.B. 1.0.3 (57)"
             />
           </div>
         </section>
