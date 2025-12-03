@@ -278,17 +278,25 @@ export default function RunSetupPage() {
   }
 
   function handleStartSession() {
-    if (!testerName.trim()) {
-      alert("Bitte einen Tester-Namen eingeben.");
-      return;
-    }
     if (selectedIds.length === 0) {
-      alert("Bitte mindestens einen Test auswählen.");
+      alert("Bitte zuerst Tests auswählen.");
       return;
     }
 
     const createdAt = new Date().toISOString();
     const sessionId = `session_${createdAt}`;
+
+    // Ausgewählte Testcases als Objekte holen
+    const selectedTests = uniqueTestcases.filter((t) =>
+      selectedIds.includes(t.id)
+    );
+
+    // Nach ID sortieren (natürliche Sortierung: ATC001, ATC002, ..., ATC010)
+    selectedTests.sort((a, b) =>
+      a.id.localeCompare(b.id, "de-DE", { numeric: true })
+    );
+
+    const orderedTestIds = selectedTests.map((t) => t.id);
 
     // Meta-Daten (Titel, Komponente, View) pro Test-ID sammeln,
     // damit die Result-Ansicht mehr als nur die ID anzeigen kann.
@@ -301,15 +309,12 @@ export default function RunSetupPage() {
       }
     > = {};
 
-    for (const id of selectedIds) {
-      const tc = testcases.find((t) => t.id === id);
-      if (tc) {
-        testMeta[id] = {
-          title: tc.title,
-          component: tc.component,
-          view: tc.view,
-        };
-      }
+    for (const tc of selectedTests) {
+      testMeta[tc.id] = {
+        title: tc.title,
+        component: tc.component,
+        view: tc.view,
+      };
     }
 
     const session: TestSession = {
@@ -317,18 +322,19 @@ export default function RunSetupPage() {
       testerName: testerName.trim(),
       device: device.trim(),
       createdAt,
-      testIds: selectedIds,
+      testIds: orderedTestIds,
       currentIndex: 0,
       results: {},
       testMeta,
     };
 
-    // Session speichern
-    localStorage.setItem(sessionId, JSON.stringify(session));
-    localStorage.setItem("activeSessionId", sessionId);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(sessionId, JSON.stringify(session));
+      window.localStorage.setItem("activeSessionId", sessionId);
+    }
 
-    // Zum ersten Test springen
-    const firstTestId = selectedIds[0];
+    // Zum ersten Test springen (in sortierter Reihenfolge)
+    const firstTestId = orderedTestIds[0];
     router.push(`/tests/${firstTestId}`);
   }
 
