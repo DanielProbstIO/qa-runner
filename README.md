@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
 
-First, run the development server:
+# QA Runner — Lokale Vault Konfiguration
+
+Dieses Projekt erlaubt dir, Testcases aus Markdown-Dateien zu laden.  
+Die Quelle dafür ist ein **Vault** — normalerweise ein Ordner mit `.md`-Dateien.
+
+---
+
+## 📦 Installation
+
+Projekt clonen oder herunterladen:
+
+```bash
+git clone git@github.com:DEIN_USER/qa-runner.git
+cd qa-runner
+```
+
+Abhängigkeiten installieren:
+
+```bash
+npm install
+```
+
+---
+
+## 🔑 Vault konfigurieren — `.env.local`
+
+Der **Pfad zum Vault** wird über eine Environment Variable gesetzt:
+
+```env
+VAULT_PATH=./vault/BegaSmartTests
+```
+
+👉 Die Datei heißt:
+
+```
+.env.local
+```
+
+und liegt **im Projekt-Root**:
+
+```
+qa-runner/.env.local
+```
+
+### ❗️Wichtig
+- `.env.local` wird **nicht automatisch erstellt** — du musst sie anlegen.
+- Ohne `VAULT_PATH` versucht die App automatisch:
+  ```
+  ./vault/BegaSmartTests
+  ```
+  zu nutzen.
+
+---
+
+## 📁 Welche Pfade sind erlaubt?
+
+### 1️⃣ Relativer Pfad (empfohlen)
+Vault liegt im Projekt:
+
+```
+VAULT_PATH=./vault/BegaSmartTests
+```
+
+✔️ Funktioniert auf jedem Rechner  
+✔️ Gut für Teamarbeit  
+✔️ Keine privaten Pfade
+
+---
+
+### 2️⃣ Absoluter Pfad (lokale Entwickler-Situation)
+
+Wenn dein Vault woanders liegt:
+
+```env
+VAULT_PATH=/Users/deinName/Desktop/MeineVault/BegaSmartTests
+```
+
+⚠️ Nur sinnvoll, wenn du lokal arbeitest  
+⚠️ Dieser Pfad existiert NICHT bei anderen Personen
+
+---
+
+## 📄 Beispiel Struktur
+
+```
+qa-runner/
+ ├─ src/
+ ├─ vault/
+ │   └─ BegaSmartTests/
+ │        ├─ Bewegungssensor/
+ │        │    └─ ATC006.md
+ │        └─ App Initial/
+ │             └─ ATC043.md
+ └─ .env.local
+```
+
+---
+
+## 🚀 Starten
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Danach:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+➡️ http://localhost:3000/run  
+Testcases sollten geladen werden.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Wenn nicht → Vault-Pfad falsch oder leer → in Terminal prüfen.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔧 Debug Ausgabe
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Beim Start sieht man:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+[vault-testcases] Verwende TESTS_DIR: /...Pfad zum Vault...
+```
 
-## Deploy on Vercel
+Wenn hier nichts steht → `.env.local` fehlt oder falsch.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
