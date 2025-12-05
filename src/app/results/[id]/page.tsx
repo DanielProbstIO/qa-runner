@@ -21,6 +21,7 @@ type SessionRun = {
   id: string;
   testerName?: string;
   device?: string;
+  buildVersion?: string;
   createdAt?: string;
   testIds?: string[];
   // z.B. { "ATC026": { "ATC026.1": StepResult, ... }, ... }
@@ -264,13 +265,27 @@ export default function ResultPage() {
                   <span className="font-semibold">{session.device}</span>
                 </p>
               )}
+              {session.buildVersion && (
+                <p className="text-sm text-slate-800 mt-1">
+                  Build: <span className="font-mono">{session.buildVersion}</span>
+                </p>
+              )}
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
               <button
                 type="button"
                 onClick={() =>
-                  exportJson(`${session.id ?? "session"}.json`, session)
+                  {
+                    const rawId = session.id ?? "session";
+                    const rawBuild = session.buildVersion || "";
+                    const safeBuild = rawBuild
+                      .toString()
+                      .trim()
+                      .replace(/[^a-zA-Z0-9._-]/g, "_");
+                    const filename = `${rawId}${safeBuild ? `-${safeBuild}` : ""}.json`;
+                    exportJson(filename, session);
+                  }
                 }
                 className="px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 text-white hover:bg-slate-900"
               >
@@ -354,25 +369,6 @@ export default function ResultPage() {
                       <h2 className="text-lg font-semibold text-black">
                         {title}
                       </h2>
-                      {meta && (meta.component || meta.view) && (
-                        <p className="text-xs text-slate-700 mt-0.5">
-                          {meta.component && (
-                            <>
-                              <span className="font-semibold">
-                                Komponente:
-                              </span>{" "}
-                              {meta.component}
-                            </>
-                          )}
-                          {meta.view && (
-                            <>
-                              {meta.component ? " • " : ""}
-                              <span className="font-semibold">View:</span>{" "}
-                              {meta.view}
-                            </>
-                          )}
-                        </p>
-                      )}
                     </div>
                     <div className="text-sm font-semibold flex gap-4">
                       <span className="text-green-700">OK: {okCount}</span>
