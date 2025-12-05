@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { getScreenshotBlob, type ScreenshotRef } from "@/lib/screenshot-store";
 
 type StepResult = {
   status: "pending" | "ok" | "nok" | "NA";
   comment: string;
-  screenshotUrl: string;
+  screenshotUrl?: string; // für alte Runs
+  screenshots?: ScreenshotRef[]; // neue Struktur mit mehreren Screenshots
 };
 
 type SingleRun = {
@@ -48,6 +50,67 @@ type VaultTestcaseMeta = {
   id: string;
   steps?: VaultStepMeta[];
 };
+
+type ScreenshotThumbProps = {
+  screenshot: ScreenshotRef;
+};
+
+function ScreenshotThumb({ screenshot }: ScreenshotThumbProps) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const blob = await getScreenshotBlob(screenshot.id);
+        if (!blob || cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      } catch (e) {
+        console.error("Thumbnail (Result) konnte nicht geladen werden:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [screenshot.id]);
+
+  return (
+    <div className="relative">
+      {/* Kleine Thumbnail-Ansicht für den Bildschirm */}
+      <div className="relative w-20 h-16 border border-slate-300 rounded-md overflow-hidden bg-slate-100 text-[10px] text-slate-700 flex items-center justify-center print:hidden">
+        {url ? (
+          <img
+            src={url}
+            alt={screenshot.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="px-1 text-center line-clamp-2">
+            {screenshot.name}
+          </span>
+        )}
+      </div>
+
+      {/* Große Ansicht nur im Druck/PDF */}
+      {url && (
+        <div className="hidden print:block mt-2">
+          <img
+            src={url}
+            alt={screenshot.name}
+            className="w-full max-h-[20cm] object-contain border border-slate-300 rounded-md"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ResultPage() {
   const params = useParams();
@@ -440,14 +503,32 @@ export default function ResultPage() {
                                 {s.comment}
                               </p>
                             )}
+
                             {s.screenshotUrl && (
                               <p className="mt-1">
                                 <span className="font-semibold">
-                                  Screenshot:
+                                  Screenshot (Legacy-Link):
                                 </span>{" "}
                                 {s.screenshotUrl}
                               </p>
                             )}
+
+                            {Array.isArray(s.screenshots) &&
+                              s.screenshots.length > 0 && (
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-[11px] text-slate-700 font-semibold">
+                                    Screenshots (lokal gespeichert):
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {s.screenshots.map((sc) => (
+                                      <ScreenshotThumb
+                                        key={sc.id}
+                                        screenshot={sc}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                           </div>
                         );
                       })}
@@ -609,10 +690,26 @@ export default function ResultPage() {
 
                   {info.screenshotUrl && (
                     <p className="mt-1 text-sm">
-                      <span className="font-semibold">Screenshot:</span>{" "}
+                      <span className="font-semibold">
+                        Screenshot (Legacy-Link):
+                      </span>{" "}
                       {info.screenshotUrl}
                     </p>
                   )}
+
+                  {Array.isArray(info.screenshots) &&
+                    info.screenshots.length > 0 && (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-[11px] text-slate-700 font-semibold">
+                          Screenshots (lokal gespeichert):
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {info.screenshots.map((sc) => (
+                            <ScreenshotThumb key={sc.id} screenshot={sc} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
               );
             })}

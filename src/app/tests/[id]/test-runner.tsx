@@ -1,20 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { VaultTestCase } from "@/lib/vault-testcases";
+import { saveScreenshot, getScreenshotBlob, type ScreenshotRef } from "@/lib/screenshot-store";
 
 type StepStatus = "pending" | "ok" | "nok" | "NA";
 
 type StepResult = {
   status: StepStatus;
   comment: string;
-  screenshotUrl: string;
+  screenshots?: ScreenshotRef[];
 };
 
 type TestRunnerProps = {
   test: VaultTestCase;
 };
+
+type ScreenshotThumbProps = {
+  screenshot: ScreenshotRef;
+  onClick: () => void;
+  onRemove: () => void;
+};
+
+function ScreenshotThumb({ screenshot, onClick, onRemove }: ScreenshotThumbProps) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const blob = await getScreenshotBlob(screenshot.id);
+        if (!blob || cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      } catch (e) {
+        console.error("Thumbnail konnte nicht geladen werden:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [screenshot.id]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        className="group relative w-20 h-16 border border-slate-300 rounded-md overflow-hidden bg-slate-100 text-[10px] text-slate-700 flex items-center justify-center"
+        onClick={onClick}
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={screenshot.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="px-1 text-center line-clamp-2">
+            {screenshot.name}
+          </span>
+        )}
+
+        <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] px-1 py-[1px] opacity-0 group-hover:opacity-100">
+          öffnen
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-[9px] text-white flex items-center justify-center shadow"
+        aria-label="Screenshot entfernen"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
 
 export default function TestRunner({ test }: TestRunnerProps) {
   const router = useRouter();
@@ -58,7 +127,7 @@ export default function TestRunner({ test }: TestRunnerProps) {
       stepResults[key] || {
         status: "pending",
         comment: "",
-        screenshotUrl: "",
+        screenshots: [],
       }
     );
   }
@@ -66,9 +135,9 @@ export default function TestRunner({ test }: TestRunnerProps) {
   function updateStepResult(key: string, partial: Partial<StepResult>) {
     setStepResults((prev) => {
       const current = prev[key] || {
-        status: "pending",
+        status: "pending" as StepStatus,
         comment: "",
-        screenshotUrl: "",
+        screenshots: [],
       };
       return {
         ...prev,
@@ -77,7 +146,93 @@ export default function TestRunner({ test }: TestRunnerProps) {
     });
   }
 
+  function handleRemoveScreenshot(stepKey: string, screenshotId: string) {
+    setStepResults((prev) => {
+      const current: StepResult =
+        prev[stepKey] || {
+          status: "pending" as StepStatus,
+          comment: "",
+          screenshots: [],
+        };
+
+      const filtered = (current.screenshots ?? []).filter(
+        (sc) => sc.id !== screenshotId
+      );
+
+      return {
+        ...prev,
+        [stepKey]: {
+          ...current,
+          screenshots: filtered,
+        },
+      };
+    });
+  }
+
+  async function handleAddScreenshot(stepKey: string, file: File | null | undefined) {
+    if (!file) return;
+    if (typeof window === "undefined") return;
+
+    try {
+      const ref = await saveScreenshot(file);
+
+      setStepResults((prev) => {
+        const current: StepResult =
+          prev[stepKey] || {
+            status: "pending",
+            comment: "",
+            screenshots: [],
+          };
+        const prevScreens = current.screenshots ?? [];
+
+        return {
+          ...prev,
+          [stepKey]: {
+            ...current,
+            screenshots: [...prevScreens, ref],
+          },
+        };
+      });
+    } catch (e) {
+      console.error("Screenshot konnte nicht gespeichert werden:", e);
+      alert("Screenshot konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function handleOpenScreenshot(screenshotId: string) {
+    try {
+      const blob = await getScreenshotBlob(screenshotId);
+      if (!blob) {
+        alert("Screenshot konnte nicht gefunden werden.");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      // Optional: URL später wieder freigeben
+      // setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      console.error("Screenshot konnte nicht geladen werden:", e);
+      alert("Screenshot konnte nicht geöffnet werden.");
+    }
+  }
+
   function handleFinish() {
+    // Validierung: alle Schritte müssen mit OK oder NOK bewertet sein
+    const missingRatings =
+      test.steps?.filter((step: any, index: number) => {
+        const key = makeStepKey(step, index);
+        const result = stepResults[key];
+        return !result || (result.status !== "ok" && result.status !== "nok");
+      }) ?? [];
+
+    if (missingRatings.length > 0) {
+      alert(
+        "Bitte alle Test-Schritte mit OK oder NOK bewerten, bevor du zum nächsten Test weitergehst."
+      );
+      return;
+    }
+
     if (typeof window === "undefined") return;
 
     const sessionId = window.localStorage.getItem("activeSessionId");
@@ -242,19 +397,39 @@ export default function TestRunner({ test }: TestRunnerProps) {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-700">
-                        Screenshot / Referenz
-                      </label>
-                      <input
-                        className="w-full border border-slate-300 rounded-md p-1 text-xs text-black placeholder-slate-500"
-                        value={result.screenshotUrl}
-                        onChange={(e) =>
-                          updateStepResult(key, {
-                            screenshotUrl: e.target.value,
-                          })
-                        }
-                        placeholder="Pfad, Dateiname oder Link zum Screenshot"
-                      />
+                      <div className="flex items-center justify-between">
+                        <span className="block text-[10px] font-semibold text-slate-700">
+                          Screenshots
+                        </span>
+                        <label className="text-[10px] text-blue-600 cursor-pointer">
+                          + Screenshot hinzufügen
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleAddScreenshot(key, e.target.files?.[0])
+                            }
+                          />
+                        </label>
+                      </div>
+
+                      {result.screenshots && result.screenshots.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {result.screenshots.map((sc) => (
+                            <ScreenshotThumb
+                              key={sc.id}
+                              screenshot={sc}
+                              onClick={() => handleOpenScreenshot(sc.id)}
+                              onRemove={() => handleRemoveScreenshot(key, sc.id)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-slate-500">
+                          Noch keine Screenshots hinzugefügt.
+                        </p>
+                      )}
                     </div>
                   </td>
                 </tr>
