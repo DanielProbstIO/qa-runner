@@ -14,6 +14,8 @@ type TestSession = {
   testerName: string;
   device: string;
   buildVersion?: string;
+  title?: string;
+  description?: string;
   createdAt: string;
   testIds: string[];
   currentIndex?: number;
@@ -80,6 +82,8 @@ export default function RunSetupPage() {
   const [testerName, setTesterName] = useState("");
   const [buildVersion, setBuildVersion] = useState("");
   const [device, setDevice] = useState("");
+  const [planTitle, setPlanTitle] = useState("");
+  const [planDescription, setPlanDescription] = useState("");
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -329,6 +333,8 @@ export default function RunSetupPage() {
       currentIndex: 0,
       results: {},
       testMeta,
+      title: planTitle.trim(),
+      description: planDescription.trim(),
     };
 
     if (typeof window !== "undefined") {
@@ -377,6 +383,16 @@ export default function RunSetupPage() {
                 <p className="text-sm font-semibold text-blue-900">
                   Aktive Session
                 </p>
+                {activeSession.title && (
+                  <p className="text-sm font-semibold text-blue-900 mt-1">
+                    {activeSession.title}
+                  </p>
+                )}
+                {activeSession.description && (
+                  <p className="text-xs text-blue-900 mt-1 whitespace-pre-line">
+                    {activeSession.description}
+                  </p>
+                )}
                 <p className="text-xs text-blue-900">
                   Session-ID:{" "}
                   <span className="font-mono">{activeSession.id}</span>
@@ -485,6 +501,33 @@ export default function RunSetupPage() {
               value={buildVersion}
               onChange={(e) => setBuildVersion(e.target.value)}
               placeholder="z.B. 1.0.3 (57)"
+            />
+          </div>
+        </section>
+
+        {/* Testplan-Metadaten */}
+        <section className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-black">
+              Testplan Titel (optional)
+            </label>
+            <input
+              className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
+              value={planTitle}
+              onChange={(e) => setPlanTitle(e.target.value)}
+              placeholder="z.B. Release 1.3 – Regression RCPro"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-black">
+              Beschreibung (optional)
+            </label>
+            <textarea
+              className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
+              rows={3}
+              value={planDescription}
+              onChange={(e) => setPlanDescription(e.target.value)}
+              placeholder="Ziel, Scope, besondere Hinweise für diese Session …"
             />
           </div>
         </section>

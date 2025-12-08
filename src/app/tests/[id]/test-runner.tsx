@@ -288,16 +288,45 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
   return (
     <section className="space-y-4">
+      {/* Kopfbereich mit Test-Metadaten */}
+      <header className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h1 className="text-base font-semibold text-slate-900">
+            {test.title || test.id}
+          </h1>
+          <span className="inline-flex items-center rounded-full bg-slate-900/5 px-2 py-0.5 text-[11px] font-mono text-slate-700">
+            {test.id}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px] text-slate-700">
+          {test.component && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-blue-800 border border-blue-100">
+              Komponente: {test.component}
+            </span>
+          )}
+          {test.view && (
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 border border-emerald-100">
+              View: {test.view}
+            </span>
+          )}
+          {test.precondition && (
+            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-amber-800 border border-amber-100">
+              Vorbedingung: {test.precondition}
+            </span>
+          )}
+        </div>
+      </header>
+
       {/* Tabelle der Steps */}
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <table className="w-full text-sm">
+      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+        <table className="w-full text-sm border-separate border-spacing-0">
           <thead className="bg-slate-100 text-left text-xs uppercase text-slate-700">
             <tr>
-              <th className="px-3 py-2 w-20">Status</th>
-              <th className="px-3 py-2">Referenz</th>
-              <th className="px-3 py-2">Ausgangspunkt</th>
-              <th className="px-3 py-2">Vorgang</th>
-              <th className="px-3 py-2">Erwartetes Verhalten / Kommentar / Screenshot</th>
+              <th className="px-3 py-2 w-24 border-b border-slate-200">Status</th>
+              <th className="px-3 py-2 border-b border-slate-200">Referenz</th>
+              <th className="px-3 py-2 border-b border-slate-200">Ausgangspunkt</th>
+              <th className="px-3 py-2 border-b border-slate-200">Vorgang</th>
+              <th className="px-3 py-2 border-b border-slate-200 w-1/2">Erwartetes Verhalten / Kommentar / Screenshot</th>
             </tr>
           </thead>
           <tbody>
@@ -308,21 +337,21 @@ export default function TestRunner({ test }: TestRunnerProps) {
               return (
                 <tr
                   key={key}
-                  className="border-t border-slate-100 align-top"
+                  className="align-top even:bg-slate-50 border-t border-slate-100"
                 >
                   {/* Status */}
-                  <td className="px-3 py-2">
-                    <div className="flex flex-col gap-1">
+                  <td className="px-3 py-3 align-top">
+                    <div className="inline-flex flex-col gap-1 rounded-md bg-slate-50 p-1 border border-slate-200">
                       <button
                         type="button"
                         onClick={() =>
                           updateStepResult(key, { status: "ok" })
                         }
                         className={
-                          "px-2 py-1 text-xs rounded-md border " +
+                          "px-2 py-1 text-[11px] rounded-md border transition-colors " +
                           (result.status === "ok"
                             ? "bg-green-600 text-white border-green-700"
-                            : "bg-white text-green-700 border-green-300")
+                            : "bg-white text-green-700 border-green-300 hover:bg-green-50")
                         }
                       >
                         OK
@@ -333,10 +362,10 @@ export default function TestRunner({ test }: TestRunnerProps) {
                           updateStepResult(key, { status: "nok" })
                         }
                         className={
-                          "px-2 py-1 text-xs rounded-md border " +
+                          "px-2 py-1 text-[11px] rounded-md border transition-colors " +
                           (result.status === "nok"
                             ? "bg-red-600 text-white border-red-700"
-                            : "bg-white text-red-700 border-red-300")
+                            : "bg-white text-red-700 border-red-300 hover:bg-red-50")
                         }
                       >
                         NOK
@@ -347,10 +376,10 @@ export default function TestRunner({ test }: TestRunnerProps) {
                           updateStepResult(key, { status: "NA" })
                         }
                         className={
-                          "px-2 py-1 text-xs rounded-md border " +
+                          "px-2 py-1 text-[11px] rounded-md border transition-colors " +
                           (result.status === "NA"
                             ? "bg-orange-700 text-white border-orange-800"
-                            : "bg-white text-orange-700 border-orange-300")
+                            : "bg-white text-orange-700 border-orange-300 hover:bg-orange-50")
                         }
                       >
                         NA
@@ -359,12 +388,12 @@ export default function TestRunner({ test }: TestRunnerProps) {
                   </td>
 
                   {/* Referenz */}
-                  <td className="px-3 py-2 text-xs font-mono text-slate-900">
-                    {normalizeReference((step.reference || step.ref || ""))}
+                  <td className="px-3 py-3 text-xs font-mono text-slate-900">
+                    {normalizeReference(step.reference || step.ref || "")}
                   </td>
 
                   {/* Ausgangspunkt */}
-                  <td className="px-3 py-2 text-xs text-slate-900">
+                  <td className="px-3 py-3 text-xs text-slate-900">
                     {step.startingPoint ||
                       step.ausgangspunkt ||
                       step.from ||
@@ -373,63 +402,74 @@ export default function TestRunner({ test }: TestRunnerProps) {
                   </td>
 
                   {/* Vorgang */}
-                  <td className="px-3 py-2 text-xs text-slate-900">
-                    {normalizeReference((step.action || step.vorgang || ""))}
+                  <td className="px-3 py-3 text-xs text-slate-900">
+                    {normalizeReference(step.action || step.vorgang || "")}
                   </td>
 
                   {/* Erwartetes Verhalten + Kommentar + Screenshot */}
-                  <td className="px-3 py-2 text-xs text-slate-900 space-y-2">
-                    <p dangerouslySetInnerHTML={{ __html: step.expected || step.erwartet || "" }} />
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-700">
-                        Kommentar
-                      </label>
-                      <textarea
-                        className="w-full border border-slate-300 rounded-md p-1 text-xs text-black placeholder-slate-500"
-                        rows={2}
-                        value={result.comment}
-                        onChange={(e) =>
-                          updateStepResult(key, {
-                            comment: e.target.value,
-                          })
-                        }
-                        placeholder="z.B. Verhalten leicht verzögert, Hinweistext war unklar …"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="block text-[10px] font-semibold text-slate-700">
-                          Screenshots
-                        </span>
-                        <label className="text-[10px] text-blue-600 cursor-pointer">
-                          + Screenshot hinzufügen
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) =>
-                              handleAddScreenshot(key, e.target.files?.[0])
-                            }
-                          />
-                        </label>
+                  <td className="px-3 py-3 text-xs text-slate-900">
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                        <p
+                          className="leading-snug"
+                          dangerouslySetInnerHTML={{
+                            __html: step.expected || step.erwartet || "",
+                          }}
+                        />
                       </div>
 
-                      {result.screenshots && result.screenshots.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {result.screenshots.map((sc) => (
-                            <ScreenshotThumb
-                              key={sc.id}
-                              screenshot={sc}
-                              onClick={() => handleOpenScreenshot(sc.id)}
-                              onRemove={() => handleRemoveScreenshot(key, sc.id)}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-semibold text-slate-700">
+                          Kommentar
+                        </label>
+                        <textarea
+                          className="w-full border border-slate-300 rounded-md p-1.5 text-xs text-black placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          rows={2}
+                          value={result.comment}
+                          onChange={(e) =>
+                            updateStepResult(key, {
+                              comment: e.target.value,
+                            })
+                          }
+                          placeholder="z.B. Verhalten leicht verzögert, Hinweistext war unklar …"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="block text-[10px] font-semibold text-slate-700">
+                            Screenshots
+                          </span>
+                          <label className="text-[10px] text-blue-600 cursor-pointer hover:underline">
+                            + Screenshot hinzufügen
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) =>
+                                handleAddScreenshot(key, e.target.files?.[0])
+                              }
                             />
-                          ))}
+                          </label>
                         </div>
-                      ) : (
-                        <p className="text-[10px] text-slate-500">
-                          Noch keine Screenshots hinzugefügt.
-                        </p>
-                      )}
+
+                        {result.screenshots && result.screenshots.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {result.screenshots.map((sc) => (
+                              <ScreenshotThumb
+                                key={sc.id}
+                                screenshot={sc}
+                                onClick={() => handleOpenScreenshot(sc.id)}
+                                onRemove={() => handleRemoveScreenshot(key, sc.id)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-slate-500">
+                            Noch keine Screenshots hinzugefügt.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -440,11 +480,11 @@ export default function TestRunner({ test }: TestRunnerProps) {
       </div>
 
       {/* Aktionen unten */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <button
           type="button"
           onClick={handleFinish}
-          className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 active:bg-blue-800"
         >
           Test abschließen &amp; weiter
         </button>

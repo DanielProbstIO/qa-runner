@@ -217,7 +217,7 @@ export default function ResultPage() {
 
   if (!raw) {
     return (
-      <main className="min-h-screen bg-slate-50 flex justify-center p-8">
+      <main className="min-h-screen bg-slate-50 flex justify-center p-8 print:bg-white print:p-4">
         <div className="w-full max-w-3xl bg-white rounded-xl shadow-md p-6">
           <h1 className="text-2xl font-semibold text-black mb-2">
             Ergebnis nicht gefunden
@@ -302,37 +302,64 @@ export default function ResultPage() {
     return (
       <main className="min-h-screen bg-slate-50 flex justify-center p-8">
         <div className="w-full max-w-4xl bg-white rounded-xl shadow-md p-6 space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <header>
-              <h1 className="text-2xl font-semibold text-black">
-                Session-Ergebnis
-              </h1>
-              <p className="text-sm text-slate-800 mt-2">
-                Session-ID: <span className="font-mono">{session.id}</span>
-              </p>
-              {session.createdAt && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Datum:{" "}
-                  {new Date(session.createdAt).toLocaleString("de-DE")}
-                </p>
-              )}
-              {session.testerName && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Tester:{" "}
-                  <span className="font-semibold">{session.testerName}</span>
-                </p>
-              )}
-              {session.device && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Gerät/Version:{" "}
-                  <span className="font-semibold">{session.device}</span>
-                </p>
-              )}
-              {session.buildVersion && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Build: <span className="font-mono">{session.buildVersion}</span>
-                </p>
-              )}
+          <div className="flex items-start justify-between gap-4 print:items-center">
+            <header className="flex-1 border-b border-slate-300 pb-3 mb-1 print:border-b-2 print:pb-4">
+              <div className="flex items-start justify-between gap-4 mb-2">
+                {/* Logo-Platzhalter – im PDF sichtbar, im normalen View versteckt */}
+                <div className="hidden print:flex flex-col items-center justify-center w-20 h-10 border border-slate-400 rounded-sm text-[10px] text-slate-600">
+                  Logo
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 print:text-[10px]">
+                    Testdokumentation
+                  </p>
+                  <h1 className="text-2xl font-semibold text-black print:text-3xl">
+                    {session.title && session.title.trim().length > 0
+                      ? session.title
+                      : "Session-Ergebnis"}
+                  </h1>
+
+                  {session.description && session.description.trim().length > 0 && (
+                    <p className="mt-1 text-sm text-slate-700 whitespace-pre-line print:text-[12px]">
+                      {session.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-1 text-xs text-slate-700 space-y-1 print:text-[11px]">
+                {session.id && (
+                  <p>
+                    <span className="font-semibold">Session-ID:</span>{" "}
+                    <span className="font-mono">{session.id}</span>
+                  </p>
+                )}
+                {session.createdAt && (
+                  <p>
+                    <span className="font-semibold">Gestartet:</span>{" "}
+                    {new Date(session.createdAt).toLocaleString("de-DE")}
+                  </p>
+                )}
+                {session.testerName && (
+                  <p>
+                    <span className="font-semibold">Tester:</span>{" "}
+                    {session.testerName}
+                  </p>
+                )}
+                {session.device && (
+                  <p>
+                    <span className="font-semibold">Gerät:</span>{" "}
+                    {session.device}
+                  </p>
+                )}
+                {session.buildVersion && (
+                  <p>
+                    <span className="font-semibold">Build-Version:</span>{" "}
+                    <span className="font-mono">{session.buildVersion}</span>
+                  </p>
+                )}
+              </div>
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
