@@ -305,9 +305,13 @@ export default function ResultPage() {
           <div className="flex items-start justify-between gap-4 print:items-center">
             <header className="flex-1 border-b border-slate-300 pb-3 mb-1 print:border-b-2 print:pb-4">
               <div className="flex items-start justify-between gap-4 mb-2">
-                {/* Logo-Platzhalter – im PDF sichtbar, im normalen View versteckt */}
-                <div className="hidden print:flex flex-col items-center justify-center w-20 h-10 border border-slate-400 rounded-sm text-[10px] text-slate-600">
-                  Logo
+                {/* Logo im PDF (aus public/logo.png) */}
+                <div className="hidden print:flex items-center justify-center w-24 h-10">
+                  <img
+                    src="/logo.png"
+                    alt="Firmenlogo"
+                    className="max-w-full max-h-full object-contain"
+                  />
                 </div>
 
                 <div className="flex-1">
@@ -588,31 +592,43 @@ export default function ResultPage() {
         <div className="w-full max-w-3xl bg-white rounded-xl shadow-md p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <header>
-              <h1 className="text-2xl font-semibold text-black">
-                Ergebnis: {singleRun.testId}
-              </h1>
-              <p className="text-sm text-slate-800 mt-2">
-                Datum:{" "}
-                {singleRun.createdAt
-                  ? new Date(singleRun.createdAt).toLocaleString("de-DE")
-                  : "nicht verfügbar"}
-              </p>
-              {singleRun.testerName && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Tester:{" "}
-                  <span className="font-semibold">
-                    {singleRun.testerName}
-                  </span>
-                </p>
-              )}
-              {singleRun.context && (
-                <p className="text-sm text-slate-800 mt-1">
-                  Gerät/Version:{" "}
-                  <span className="font-semibold">
-                    {singleRun.context}
-                  </span>
-                </p>
-              )}
+              <div className="flex items-start justify-between gap-4 mb-2">
+                {/* Logo im PDF (aus public/logo.png) */}
+                <div className="hidden print:flex items-center justify-center w-24 h-10">
+                  <img
+                    src="/logo.png"
+                    alt="Firmenlogo"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-2xl font-semibold text-black">
+                    Ergebnis: {singleRun.testId}
+                  </h1>
+                  <p className="text-sm text-slate-800 mt-2">
+                    Datum:{" "}
+                    {singleRun.createdAt
+                      ? new Date(singleRun.createdAt).toLocaleString("de-DE")
+                      : "nicht verfügbar"}
+                  </p>
+                  {singleRun.testerName && (
+                    <p className="text-sm text-slate-800 mt-1">
+                      Tester:{" "}
+                      <span className="font-semibold">
+                        {singleRun.testerName}
+                      </span>
+                    </p>
+                  )}
+                  {singleRun.context && (
+                    <p className="text-sm text-slate-800 mt-1">
+                      Gerät/Version:{" "}
+                      <span className="font-semibold">
+                        {singleRun.context}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
