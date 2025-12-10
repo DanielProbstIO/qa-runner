@@ -30,6 +30,13 @@ type TestSession = {
   >;
 };
 
+type TestPlan = {
+  id: string;
+  title: string;
+  description?: string;
+  testIds: string[];
+};
+
 export default function RunSetupPage() {
   const router = useRouter();
   const [testcases, setTestcases] = useState<TestCase[]>([]);
@@ -89,6 +96,27 @@ export default function RunSetupPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("id");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [savedPlans, setSavedPlans] = useState<TestPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const raw = window.localStorage.getItem("savedTestPlans");
+    if (!raw) return;
+
+    try {
+      const parsed: TestPlan[] = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setSavedPlans(parsed);
+      }
+    } catch (e) {
+      console.error("Gespeicherte Testpläne konnten nicht geladen werden:", e);
+    }
+  }, []);
+  function persistPlans(plans: TestPlan[]) {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("savedTestPlans", JSON.stringify(plans));
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -218,6 +246,48 @@ export default function RunSetupPage() {
 
   function handleClearSelection() {
     setSelectedIds([]);
+  }
+
+  function handleSavePlan() {
+    if (selectedIds.length === 0) {
+      alert("Bitte zuerst Tests auswählen, die in den Testplan sollen.");
+      return;
+    }
+
+    const title = planTitle.trim() || `Testplan ${new Date().toLocaleString("de-DE")}`;
+    const description = planDescription.trim();
+
+    const newPlan: TestPlan = {
+      id: `plan_${Date.now().toString()}`,
+      title,
+      description: description.length > 0 ? description : undefined,
+      testIds: [...selectedIds],
+    };
+
+    const updated = [...savedPlans, newPlan];
+    setSavedPlans(updated);
+    persistPlans(updated);
+
+    alert("Testplan wurde gespeichert.");
+  }
+
+  function handleApplySelectedPlan() {
+    if (!selectedPlanId) return;
+
+    const plan = savedPlans.find((p) => p.id === selectedPlanId);
+    if (!plan) return;
+
+    // Nur IDs übernehmen, die es in den geladenen Testcases wirklich gibt
+    const validIds = plan.testIds.filter((id) =>
+      uniqueTestcases.some((t) => t.id === id)
+    );
+
+    setSelectedIds(validIds);
+
+    if (plan.title) {
+      setPlanTitle(plan.title);
+    }
+    setPlanDescription(plan.description ?? "");
   }
 
  function handleSort(key: SortKey) {
@@ -506,7 +576,7 @@ export default function RunSetupPage() {
         </section>
 
         {/* Testplan-Metadaten */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-black">
               Testplan Titel (optional)
@@ -530,6 +600,39 @@ export default function RunSetupPage() {
               placeholder="Ziel, Scope, besondere Hinweise für diese Session …"
             />
           </div>
+
+          {savedPlans.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-black">
+                Gespeicherte Testpläne
+              </label>
+              <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-end">
+                <select
+                  className="flex-1 border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                >
+                  <option value="">– Testplan auswählen –</option>
+                  {savedPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="px-3 py-2 rounded-md bg-slate-800 text-white text-xs font-medium disabled:opacity-40"
+                  onClick={handleApplySelectedPlan}
+                  disabled={!selectedPlanId}
+                >
+                  Plan laden
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Ein geladener Plan ist nur eine Ausgangsbasis: Du kannst danach die Testauswahl frei anpassen.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Filter */}
@@ -703,38 +806,49 @@ export default function RunSetupPage() {
 
         {/* Session Starten */}
         <section className="flex justify-between items-center gap-2">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-slate-200 text-slate-900 text-sm font-medium disabled:opacity-40"
-            onClick={() => {
-              if (selectedIds.length === 0) {
-                alert("Bitte zuerst Tests auswählen, die in den Testplan sollen.");
-                return;
-              }
-              if (typeof window === "undefined") return;
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md bg-slate-200 text-slate-900 text-sm font-medium disabled:opacity-40"
+              onClick={handleSavePlan}
+              disabled={selectedIds.length === 0}
+            >
+              Testplan speichern
+            </button>
 
-              const baseUrl = `${window.location.origin}/run`;
-              const url = `${baseUrl}?tests=${encodeURIComponent(
-                selectedIds.join(",")
-              )}`;
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md bg-slate-100 text-slate-900 text-sm font-medium disabled:opacity-40 border border-slate-300"
+              onClick={() => {
+                if (selectedIds.length === 0) {
+                  alert("Bitte zuerst Tests auswählen, die in den Testplan sollen.");
+                  return;
+                }
+                if (typeof window === "undefined") return;
 
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard
-                  .writeText(url)
-                  .then(() => {
-                    alert("Link zum Testplan wurde in die Zwischenablage kopiert.");
-                  })
-                  .catch(() => {
-                    alert("Konnte den Link nicht automatisch kopieren. URL: " + url);
-                  });
-              } else {
-                alert("Testplan-URL:\n" + url);
-              }
-            }}
-            disabled={selectedIds.length === 0}
-          >
-            Link für Testplan kopieren
-          </button>
+                const baseUrl = `${window.location.origin}/run`;
+                const url = `${baseUrl}?tests=${encodeURIComponent(
+                  selectedIds.join(",")
+                )}`;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard
+                    .writeText(url)
+                    .then(() => {
+                      alert("Link zum Testplan wurde in die Zwischenablage kopiert.");
+                    })
+                    .catch(() => {
+                      alert("Konnte den Link nicht automatisch kopieren. URL: " + url);
+                    });
+                } else {
+                  alert("Testplan-URL:\n" + url);
+                }
+              }}
+              disabled={selectedIds.length === 0}
+            >
+              Link für Testplan kopieren
+            </button>
+          </div>
 
           <button
             type="button"
