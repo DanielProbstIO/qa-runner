@@ -88,6 +88,12 @@ function ScreenshotThumb({ screenshot, onClick, onRemove }: ScreenshotThumbProps
 export default function TestRunner({ test }: TestRunnerProps) {
   const router = useRouter();
 
+  // Abgeleiteter Titel (fällt auf ID zurück, falls kein Titel gesetzt)
+  const displayTitle = (test.title || "").trim() || test.id;
+  // ID-Badge nur anzeigen, wenn der Titel die ID nicht bereits enthält
+  const showIdBadge =
+    typeof test.id === "string" && !displayTitle.startsWith(test.id);
+
   // Ergebnisse pro Step, Key z.B. "ATC026.1"
   const [stepResults, setStepResults] = useState<Record<string, StepResult>>(
     () => {
@@ -288,35 +294,6 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
   return (
     <section className="space-y-4">
-      {/* Kopfbereich mit Test-Metadaten */}
-      <header className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-base font-semibold text-slate-900">
-            {test.title || test.id}
-          </h1>
-          <span className="inline-flex items-center rounded-full bg-slate-900/5 px-2 py-0.5 text-[11px] font-mono text-slate-700">
-            {test.id}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2 text-[11px] text-slate-700">
-          {test.component && (
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-blue-800 border border-blue-100">
-              Komponente: {test.component}
-            </span>
-          )}
-          {test.view && (
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 border border-emerald-100">
-              View: {test.view}
-            </span>
-          )}
-          {test.precondition && (
-            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-amber-800 border border-amber-100">
-              Vorbedingung: {test.precondition}
-            </span>
-          )}
-        </div>
-      </header>
-
       {/* Tabelle der Steps */}
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
         <table className="w-full text-sm border-separate border-spacing-0">
