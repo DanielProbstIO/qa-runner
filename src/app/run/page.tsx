@@ -290,6 +290,48 @@ export default function RunSetupPage() {
     setPlanDescription(plan.description ?? "");
   }
 
+  function handleRenameSelectedPlan() {
+    if (!selectedPlanId) return;
+    const existing = savedPlans.find((p) => p.id === selectedPlanId);
+    if (!existing) return;
+
+    const currentTitle = existing.title || "";
+    const newTitle = window.prompt("Neuer Titel für diesen Testplan:", currentTitle);
+    if (!newTitle) {
+      return;
+    }
+
+    const trimmed = newTitle.trim();
+    if (!trimmed) {
+      alert("Titel darf nicht leer sein.");
+      return;
+    }
+
+    const updated = savedPlans.map((p) =>
+      p.id === selectedPlanId ? { ...p, title: trimmed } : p
+    );
+    setSavedPlans(updated);
+    persistPlans(updated);
+    setPlanTitle(trimmed);
+  }
+
+  function handleDeleteSelectedPlan() {
+    if (!selectedPlanId) return;
+
+    const existing = savedPlans.find((p) => p.id === selectedPlanId);
+    const title = existing?.title ?? "unbenannter Plan";
+
+    const ok = window.confirm(
+      `Möchtest du den Testplan „${title}“ wirklich löschen?`
+    );
+    if (!ok) return;
+
+    const updated = savedPlans.filter((p) => p.id !== selectedPlanId);
+    setSavedPlans(updated);
+    persistPlans(updated);
+    setSelectedPlanId("");
+  }
+
  function handleSort(key: SortKey) {
   if (sortKey === key) {
     // Gleiches Feld → Richtung togglen
@@ -619,14 +661,32 @@ export default function RunSetupPage() {
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  className="px-3 py-2 rounded-md bg-slate-800 text-white text-xs font-medium disabled:opacity-40"
-                  onClick={handleApplySelectedPlan}
-                  disabled={!selectedPlanId}
-                >
-                  Plan laden
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-md bg-slate-800 text-white text-xs font-medium disabled:opacity-40"
+                    onClick={handleApplySelectedPlan}
+                    disabled={!selectedPlanId}
+                  >
+                    Plan laden
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-md bg-slate-100 text-slate-900 text-xs font-medium disabled:opacity-40 border border-slate-300"
+                    onClick={handleRenameSelectedPlan}
+                    disabled={!selectedPlanId}
+                  >
+                    Umbenennen
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 rounded-md bg-red-50 text-red-700 text-xs font-medium disabled:opacity-40 border border-red-200"
+                    onClick={handleDeleteSelectedPlan}
+                    disabled={!selectedPlanId}
+                  >
+                    Löschen
+                  </button>
+                </div>
               </div>
               <p className="text-[11px] text-slate-600">
                 Ein geladener Plan ist nur eine Ausgangsbasis: Du kannst danach die Testauswahl frei anpassen.

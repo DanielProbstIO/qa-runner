@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { getScreenshotBlob, type ScreenshotRef } from "@/lib/screenshot-store";
 
 type StepResult = {
@@ -115,6 +115,8 @@ function ScreenshotThumb({ screenshot }: ScreenshotThumbProps) {
 export default function ResultPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : (params.id as string);
+
+  const router = useRouter();
 
   const [ready, setReady] = useState(false);
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
@@ -367,6 +369,21 @@ export default function ResultPage() {
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!testIds || testIds.length === 0) {
+                    alert("Für diese Session wurden keine Testfälle gefunden.");
+                    return;
+                  }
+                  const query = encodeURIComponent(testIds.join(","));
+                  router.push(`/run?tests=${query}`);
+                }}
+                className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Neuen Lauf mit diesem Testplan starten
+              </button>
+
               <button
                 type="button"
                 onClick={() =>
