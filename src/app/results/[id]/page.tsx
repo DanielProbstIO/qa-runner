@@ -294,11 +294,14 @@ export default function ResultPage() {
 
   // 🔹 Session-Ergebnis
   if (isSession && session) {
+    const testIdsFromResults = session.results
+      ? Object.keys(session.results)
+      : [];
     const testIds =
-      session.testIds && session.testIds.length > 0
+      testIdsFromResults.length > 0
+        ? testIdsFromResults
+        : session.testIds && session.testIds.length > 0
         ? session.testIds
-        : session.results
-        ? Object.keys(session.results)
         : [];
 
     return (
@@ -369,6 +372,26 @@ export default function ResultPage() {
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
+              {/* Session im Test-Runner weiterbearbeiten */}
+<button
+  type="button"
+  onClick={() => {
+    try {
+      if (typeof window !== "undefined" && session.id) {
+        window.localStorage.setItem("activeSessionId", session.id);
+      }
+    } catch (e) {
+      console.error("Konnte Session nicht als aktiv markieren:", e);
+    }
+    // 👉 Neuer Bearbeiten-Screen
+    router.push(`/results/${session.id}/edit`);
+  }}
+  className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-500 text-white hover:bg-blue-600"
+>
+  Session bearbeiten
+</button>
+
+              {/* Neuen Lauf mit demselben Testplan starten */}
               <button
                 type="button"
                 onClick={() => {
@@ -384,24 +407,25 @@ export default function ResultPage() {
                 Neuen Lauf mit diesem Testplan starten
               </button>
 
+              {/* JSON-Export wie bisher */}
               <button
                 type="button"
-                onClick={() =>
-                  {
-                    const rawId = session.id ?? "session";
-                    const rawBuild = session.buildVersion || "";
-                    const safeBuild = rawBuild
-                      .toString()
-                      .trim()
-                      .replace(/[^a-zA-Z0-9._-]/g, "_");
-                    const filename = `${rawId}${safeBuild ? `-${safeBuild}` : ""}.json`;
-                    exportJson(filename, session);
-                  }
-                }
+                onClick={() => {
+                  const rawId = session.id ?? "session";
+                  const rawBuild = session.buildVersion || "";
+                  const safeBuild = rawBuild
+                    .toString()
+                    .trim()
+                    .replace(/[^a-zA-Z0-9._-]/g, "_");
+                  const filename = `${rawId}${safeBuild ? `-${safeBuild}` : ""}.json`;
+                  exportJson(filename, session);
+                }}
                 className="px-3 py-1 rounded-md text-xs font-semibold bg-slate-800 text-white hover:bg-slate-900"
               >
                 JSON exportieren
               </button>
+
+              {/* PDF-Export wie bisher */}
               <button
                 type="button"
                 onClick={printAsPdf}

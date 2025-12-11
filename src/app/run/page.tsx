@@ -98,6 +98,17 @@ export default function RunSetupPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [savedPlans, setSavedPlans] = useState<TestPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [forceEditMode, setForceEditMode] = useState(false);
+  // Im Edit-Mode: Tests aus aktiver Session vorauswählen, falls noch keine Auswahl besteht
+  useEffect(() => {
+    if (!forceEditMode) return;
+    if (!activeSession) return;
+    if (!Array.isArray(activeSession.testIds)) return;
+    if (activeSession.testIds.length === 0) return;
+    if (selectedIds.length > 0) return; // Nutzer hat bereits etwas gewählt
+
+    setSelectedIds(activeSession.testIds);
+  }, [forceEditMode, activeSession, selectedIds.length]);
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -123,16 +134,22 @@ export default function RunSetupPage() {
 
     const params = new URLSearchParams(window.location.search);
     const testsParam = params.get("tests");
-    if (!testsParam) return;
+    const editParam = params.get("edit");
 
-    const ids = testsParam
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    if (testsParam) {
+      const ids = testsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
 
-    if (ids.length > 0) {
-      setForcedTestIds(ids);
-      setSelectedIds(ids);
+      if (ids.length > 0) {
+        setForcedTestIds(ids);
+        setSelectedIds(ids);
+      }
+    }
+
+    if (editParam === "1") {
+      setForceEditMode(true);
     }
   }, []);
 
@@ -356,18 +373,36 @@ export default function RunSetupPage() {
 
     const doneCount = Object.keys(results).length;
     const total = testIds.length;
+    const allDone = total > 0 && doneCount >= total;
 
-    // 🔹 Wenn alle Tests erledigt sind → direkt zur Session-Ergebnis-Seite
-    if (total > 0 && doneCount >= total) {
+    // Wenn alle Tests erledigt sind und wir NICHT im Edit-Mode sind → direkt zur Session-Ergebnis-Seite
+    if (!forceEditMode && allDone) {
       router.push(`/results/${activeSession.id}`);
       return;
     }
 
-    // 🔹 Sonst: passenden Test zum Fortsetzen finden
+    // 🔹 Passenden Test zum Fortsetzen / Bearbeiten finden
     const currentIndex: number = activeSession.currentIndex ?? 0;
     let idx = currentIndex;
 
-    // Wenn currentIndex schon hinter dem letzten Test liegt:
+    if (forceEditMode) {
+      // Im Edit-Mode: bevorzugt den ersten Test mit einem NOK-Schritt anspringen
+      const firstNokIndex = testIds.findIndex((testId) => {
+        const stepMap = results[testId] ?? {};
+        return Object.values(stepMap).some(
+          (s: any) => s && s.status === "nok"
+        );
+      });
+
+      if (firstNokIndex !== -1) {
+        idx = firstNokIndex;
+      } else {
+        // Falls keine NOK-Schritte vorhanden sind: beim ersten Test beginnen
+        idx = 0;
+      }
+    }
+
+    // Wenn currentIndex (oder berechneter Index) hinter dem letzten Test liegt:
     if (idx >= total) {
       // Versuche, den ersten Test ohne Ergebnis zu finden
       idx = testIds.findIndex((testId) => !results[testId]);
@@ -393,6 +428,49 @@ export default function RunSetupPage() {
       window.localStorage.removeItem("activeSessionId");
     }
     setActiveSession(null);
+  }
+
+  function handleStartEditForSelected() {
+    if (!activeSession) {
+      alert("Es ist keine aktive Session vorhanden.");
+      return;
+    }
+
+    if (selectedIds.length === 0) {
+      alert("Bitte zuerst Tests auswählen, die in dieser Session bearbeitet werden sollen.");
+      return;
+    }
+
+    // Ausgewählte Testcases als Objekte holen (nur solche, die es im Vault gibt)
+    const selectedTests = uniqueTestcases.filter((t) =>
+      selectedIds.includes(t.id)
+    );
+
+    if (selectedTests.length === 0) {
+      alert("Die ausgewählten Tests konnten im Vault nicht gefunden werden.");
+      return;
+    }
+
+    // IDs sortieren (natürliche Sortierung: ATC001, ATC002, ..., ATC010)
+    selectedTests.sort((a, b) =>
+      a.id.localeCompare(b.id, "de-DE", { numeric: true })
+    );
+
+    const orderedTestIds = selectedTests.map((t) => t.id);
+
+    const updatedSession: TestSession = {
+      ...activeSession,
+      testIds: orderedTestIds,
+      currentIndex: 0,
+    };
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(updatedSession.id, JSON.stringify(updatedSession));
+      window.localStorage.setItem("activeSessionId", updatedSession.id);
+    }
+
+    const firstTestId = orderedTestIds[0];
+    router.push(`/tests/${firstTestId}`);
   }
 
   function handleStartSession() {
@@ -864,8 +942,8 @@ export default function RunSetupPage() {
           </table>
         </section>
 
-        {/* Session Starten */}
-        <section className="flex justify-between items-center gap-2">
+        {/* Session Starten / Bearbeiten */}
+        <section className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -910,14 +988,29 @@ export default function RunSetupPage() {
             </button>
           </div>
 
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-40"
-            onClick={handleStartSession}
-            disabled={selectedIds.length === 0 || !testerName.trim()}
-          >
-            Session starten
-          </button>
+          <div className="flex flex-wrap gap-2 justify-end">
+            {/* Normaler Start einer neuen Session */}
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-40"
+              onClick={handleStartSession}
+              disabled={selectedIds.length === 0 || !testerName.trim()}
+            >
+              Session starten
+            </button>
+
+            {/* Bearbeiten-Modus: ausgewählte Tests in aktiver Session durchgehen */}
+            {forceEditMode && activeSession && (
+              <button
+                type="button"
+                className="px-4 py-2 rounded-md bg-amber-500 text-white text-sm font-medium disabled:opacity-40"
+                onClick={handleStartEditForSelected}
+                disabled={selectedIds.length === 0}
+              >
+                Ausgewählte Tests in dieser Session bearbeiten
+              </button>
+            )}
+          </div>
         </section>
       </div>
     </main>
