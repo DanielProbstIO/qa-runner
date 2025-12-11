@@ -96,11 +96,40 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
   // Ergebnisse pro Step, Key z.B. "ATC026.1"
   const [stepResults, setStepResults] = useState<Record<string, StepResult>>(
-    () => {
-      // Optional: später könnten hier vorhandene Session-Daten vorbefüllt werden
-      return {};
-    }
+    () => ({})
   );
+
+  // Beim Laden des Tests vorhandene Ergebnisse aus der aktiven Session vorbefüllen,
+  // damit OK/NOK/Kommentare/Screenshots beim Bearbeiten erhalten bleiben.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const sessionId = window.localStorage.getItem("activeSessionId");
+      if (!sessionId) return;
+
+      const raw = window.localStorage.getItem(sessionId);
+      if (!raw) return;
+
+      const session = JSON.parse(raw);
+      if (!session.results || !session.results[test.id]) return;
+
+      const existing = session.results[test.id] as Record<string, StepResult>;
+
+      // Nur initial setzen, nicht überschreiben, falls es schon lokale Änderungen gibt
+      setStepResults((prev) => {
+        if (Object.keys(prev).length > 0) {
+          return prev;
+        }
+        return existing;
+      });
+    } catch (e) {
+      console.error(
+        "Vorhandene Step-Resultate konnten nicht geladen werden:",
+        e
+      );
+    }
+  }, [test.id]);
 
   /**
    * Ersetzt alle Vorkommen von "**`= this.testCaseId`**" durch die aktuelle Test-ID

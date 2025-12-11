@@ -147,34 +147,53 @@ export default function EditSessionPage() {
     }
   };
 
-const handleStartEdit = () => {
-  if (selectedTestIds.length === 0) {
-    alert("Bitte mindestens einen Test zum Bearbeiten auswählen.");
-    return;
-  }
+  const handleSaveMetaOnly = () => {
+    const updated: SessionRun = {
+      ...session,
+      testerName: testerName.trim() || undefined,
+      device: device.trim() || undefined,
+      buildVersion: buildVersion.trim() || undefined,
+      title: title.trim() || undefined,
+      description: description.trim() || undefined,
+      // testIds und currentIndex bleiben unverändert
+    };
 
-  const firstSelectedId = selectedTestIds[0];
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(id, JSON.stringify(updated));
+      window.localStorage.setItem("activeSessionId", id);
+    }
 
-  const updated: SessionRun = {
-    ...session,
-    testerName: testerName.trim() || undefined,
-    device: device.trim() || undefined,
-    buildVersion: buildVersion.trim() || undefined,
-    title: title.trim() || undefined,
-    description: description.trim() || undefined,
-    // Nur die ausgewählten Tests sollen im Runner nacheinander durchlaufen werden
-    testIds: [...selectedTestIds],
-    currentIndex: 0,
+    router.push(`/results/${id}`);
   };
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(id, JSON.stringify(updated));
-    window.localStorage.setItem("activeSessionId", id);
-  }
+  const handleStartEdit = () => {
+    if (selectedTestIds.length === 0) {
+      alert("Bitte mindestens einen Test zum Bearbeiten auswählen.");
+      return;
+    }
 
-  // Im Runner bei dem ersten ausgewählten Test anfangen
-  router.push(`/tests/${firstSelectedId}`);
-};
+    const firstSelectedId = selectedTestIds[0];
+
+    const updated: SessionRun = {
+      ...session,
+      testerName: testerName.trim() || undefined,
+      device: device.trim() || undefined,
+      buildVersion: buildVersion.trim() || undefined,
+      title: title.trim() || undefined,
+      description: description.trim() || undefined,
+      // Nur die ausgewählten Tests sollen im Runner nacheinander durchlaufen werden
+      testIds: [...selectedTestIds],
+      currentIndex: 0,
+    };
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(id, JSON.stringify(updated));
+      window.localStorage.setItem("activeSessionId", id);
+    }
+
+    // Im Runner bei dem ersten ausgewählten Test anfangen
+    router.push(`/tests/${firstSelectedId}`);
+  };
 
   const handleCancel = () => {
     router.push(`/results/${id}`);
@@ -365,14 +384,23 @@ const handleStartEdit = () => {
           >
             Abbrechen &amp; zurück zum Ergebnis
           </button>
-          <button
-            type="button"
-            onClick={handleStartEdit}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-40"
-            disabled={selectedTestIds.length === 0}
-          >
-            Bearbeitung im Test-Runner starten
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSaveMetaOnly}
+              className="px-4 py-2 rounded-md border border-slate-300 text-sm text-slate-800 bg-white hover:bg-slate-50"
+            >
+              Nur Meta-Daten speichern
+            </button>
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-40"
+              disabled={selectedTestIds.length === 0}
+            >
+              Bearbeitung im Test-Runner starten
+            </button>
+          </div>
         </section>
       </div>
     </main>
