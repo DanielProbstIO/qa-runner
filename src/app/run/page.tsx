@@ -135,6 +135,11 @@ export default function RunSetupPage() {
     const params = new URLSearchParams(window.location.search);
     const testsParam = params.get("tests");
     const editParam = params.get("edit");
+    const titleParam = params.get("title");
+    const descriptionParam = params.get("description");
+    const testerParam = params.get("tester");
+    const deviceParam = params.get("device");
+    const buildParam = params.get("build");
 
     if (testsParam) {
       const ids = testsParam
@@ -150,6 +155,23 @@ export default function RunSetupPage() {
 
     if (editParam === "1") {
       setForceEditMode(true);
+    }
+
+    // Set metadata fields if present in params (but do not overwrite if missing)
+    if (typeof titleParam === "string" && titleParam.trim().length > 0) {
+      setPlanTitle(titleParam.trim());
+    }
+    if (typeof descriptionParam === "string" && descriptionParam.trim().length > 0) {
+      setPlanDescription(descriptionParam.trim());
+    }
+    if (typeof testerParam === "string" && testerParam.trim().length > 0) {
+      setTesterName(testerParam.trim());
+    }
+    if (typeof deviceParam === "string" && deviceParam.trim().length > 0) {
+      setDevice(deviceParam.trim());
+    }
+    if (typeof buildParam === "string" && buildParam.trim().length > 0) {
+      setBuildVersion(buildParam.trim());
     }
   }, []);
 
@@ -965,21 +987,36 @@ export default function RunSetupPage() {
                 if (typeof window === "undefined") return;
 
                 const baseUrl = `${window.location.origin}/run`;
-                const url = `${baseUrl}?tests=${encodeURIComponent(
-                  selectedIds.join(",")
-                )}`;
+                const urlObj = new URL(baseUrl);
+                urlObj.searchParams.set("tests", selectedIds.join(","));
+                if (planTitle.trim().length > 0) {
+                  urlObj.searchParams.set("title", planTitle.trim());
+                }
+                if (planDescription.trim().length > 0) {
+                  urlObj.searchParams.set("description", planDescription.trim());
+                }
+                if (testerName.trim().length > 0) {
+                  urlObj.searchParams.set("tester", testerName.trim());
+                }
+                if (device.trim().length > 0) {
+                  urlObj.searchParams.set("device", device.trim());
+                }
+                if (buildVersion.trim().length > 0) {
+                  urlObj.searchParams.set("build", buildVersion.trim());
+                }
+                const url = urlObj.toString();
 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                   navigator.clipboard
                     .writeText(url)
                     .then(() => {
-                      alert("Link zum Testplan wurde in die Zwischenablage kopiert.");
+                      alert("Link zum Testplan (inkl. Metadaten) wurde in die Zwischenablage kopiert.");
                     })
                     .catch(() => {
                       alert("Konnte den Link nicht automatisch kopieren. URL: " + url);
                     });
                 } else {
-                  alert("Testplan-URL:\n" + url);
+                  alert("Testplan-URL (inkl. Metadaten):\n" + url);
                 }
               }}
               disabled={selectedIds.length === 0}
