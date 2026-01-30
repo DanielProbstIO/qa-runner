@@ -253,17 +253,22 @@ export default function TestRunner({ test }: TestRunnerProps) {
   }
 
   function handleFinish() {
-    // Validierung: alle Schritte müssen mit OK oder NOK bewertet sein
+    // Validierung: alle Schritte müssen bewertet sein (OK, NOK oder NA)
     const missingRatings =
       test.steps?.filter((step: any, index: number) => {
         const key = makeStepKey(step, index);
         const result = stepResults[key];
-        return !result || (result.status !== "ok" && result.status !== "nok");
+
+        // Erlaubte Abschluss-Statuses: ok, nok, NA
+        return (
+          !result ||
+          (result.status !== "ok" && result.status !== "nok" && result.status !== "NA")
+        );
       }) ?? [];
 
     if (missingRatings.length > 0) {
       alert(
-        "Bitte alle Test-Schritte mit OK oder NOK bewerten, bevor du zum nächsten Test weitergehst."
+        "Bitte alle Test-Schritte mit OK, NOK oder NA bewerten, bevor du zum nächsten Test weitergehst."
       );
       return;
     }
