@@ -23,6 +23,7 @@ type SessionRun = {
   id: string;
   testerName?: string;
   device?: string;
+  osVersion?: string;
   buildVersion?: string;
   createdAt?: string;
   testIds?: string[];
@@ -36,6 +37,15 @@ type SessionRun = {
       view?: string;
     }
   >;
+};
+
+type SessionMetaForm = {
+  title: string;
+  description: string;
+  testerName: string;
+  device: string;
+  osVersion: string;
+  buildVersion: string;
 };
 
 // --- Testcase & Step Meta aus der API ---
@@ -122,6 +132,15 @@ export default function ResultPage() {
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [testcases, setTestcases] = useState<VaultTestcaseMeta[] | null>(null);
+  const [isMetaEditOpen, setMetaEditOpen] = useState(false);
+  const [metaForm, setMetaForm] = useState<SessionMetaForm>({
+    title: "",
+    description: "",
+    testerName: "",
+    device: "",
+    osVersion: "",
+    buildVersion: "",
+  });
 
   useEffect(() => {
     setReady(true);
@@ -304,6 +323,37 @@ export default function ResultPage() {
         ? session.testIds
         : [];
 
+    function openMetaEditor() {
+      setMetaForm({
+        title: session?.title ?? "",
+        description: session?.description ?? "",
+        testerName: session?.testerName ?? "",
+        device: session?.device ?? "",
+        osVersion: session?.osVersion ?? "",
+        buildVersion: session?.buildVersion ?? "",
+      });
+      setMetaEditOpen(true);
+    }
+
+    function saveMetaEditor() {
+      if (typeof window === "undefined") return;
+      const sessionId = session?.id || id;
+      if (!sessionId) return;
+
+      const updatedSession: SessionRun = {
+        ...session,
+        title: metaForm.title.trim() || undefined,
+        description: metaForm.description.trim() || undefined,
+        testerName: metaForm.testerName.trim() || undefined,
+        device: metaForm.device.trim() || undefined,
+        osVersion: metaForm.osVersion.trim() || undefined,
+        buildVersion: metaForm.buildVersion.trim() || undefined,
+      };
+
+      window.localStorage.setItem(sessionId, JSON.stringify(updatedSession));
+      setMetaEditOpen(false);
+    }
+
     return (
       <main className="min-h-screen bg-slate-50 flex justify-center p-8">
         <div className="w-full max-w-4xl bg-white rounded-xl shadow-md p-6 space-y-6">
@@ -360,6 +410,12 @@ export default function ResultPage() {
                   <p>
                     <span className="font-semibold">Gerät:</span>{" "}
                     {session.device}
+                  </p>
+                )}
+                {session.osVersion && (
+                  <p>
+                    <span className="font-semibold">iOS/Android Version:</span>{" "}
+                    {session.osVersion}
                   </p>
                 )}
                 {session.buildVersion && (
@@ -452,6 +508,128 @@ export default function ResultPage() {
               </button>
             </div>
           </div>
+
+          <div className="print:hidden -mt-2">
+            <button
+              type="button"
+              onClick={openMetaEditor}
+              className="px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
+            >
+              Metadaten bearbeiten
+            </button>
+          </div>
+
+          {isMetaEditOpen && (
+            <section className="print:hidden border border-indigo-200 bg-indigo-50 rounded-lg p-4 space-y-3">
+              <h2 className="text-sm font-semibold text-indigo-900">
+                Metadaten direkt anpassen (vor Export)
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-800">
+                    Titel
+                  </label>
+                  <input
+                    className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                    value={metaForm.title}
+                    onChange={(e) =>
+                      setMetaForm((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    placeholder="z.B. Release 1.3 Regression"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-800">
+                    Tester
+                  </label>
+                  <input
+                    className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                    value={metaForm.testerName}
+                    onChange={(e) =>
+                      setMetaForm((prev) => ({ ...prev, testerName: e.target.value }))
+                    }
+                    placeholder="z.B. Daniel"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-800">
+                    Gerät
+                  </label>
+                  <input
+                    className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                    value={metaForm.device}
+                    onChange={(e) =>
+                      setMetaForm((prev) => ({ ...prev, device: e.target.value }))
+                    }
+                    placeholder="z.B. iPhone 15"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-800">
+                    iOS/Android Version
+                  </label>
+                  <input
+                    className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                    value={metaForm.osVersion}
+                    onChange={(e) =>
+                      setMetaForm((prev) => ({ ...prev, osVersion: e.target.value }))
+                    }
+                    placeholder="z.B. iOS 18.2 / Android 15"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-800">
+                    Build-Version
+                  </label>
+                  <input
+                    className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                    value={metaForm.buildVersion}
+                    onChange={(e) =>
+                      setMetaForm((prev) => ({ ...prev, buildVersion: e.target.value }))
+                    }
+                    placeholder="z.B. 1.0.3 (57)"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-800">
+                  Beschreibung
+                </label>
+                <textarea
+                  className="w-full border border-slate-300 rounded-md p-2 text-sm text-black bg-white"
+                  rows={3}
+                  value={metaForm.description}
+                  onChange={(e) =>
+                    setMetaForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  placeholder="Notizen für den Export..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMetaEditOpen(false)}
+                  className="px-3 py-1 rounded-md text-xs font-semibold border border-slate-300 text-slate-800 bg-white hover:bg-slate-100"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={saveMetaEditor}
+                  className="px-3 py-1 rounded-md text-xs font-semibold bg-indigo-700 text-white hover:bg-indigo-800"
+                >
+                  Metadaten speichern
+                </button>
+              </div>
+            </section>
+          )}
 
           <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700 print:hidden">
             <label className="flex items-center gap-2 cursor-pointer">

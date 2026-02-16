@@ -14,6 +14,7 @@ type SessionRun = {
   id: string;
   testerName?: string;
   device?: string;
+  osVersion?: string;
   buildVersion?: string;
   createdAt?: string;
   title?: string;
@@ -42,6 +43,7 @@ export default function EditSessionPage() {
 
   const [testerName, setTesterName] = useState("");
   const [device, setDevice] = useState("");
+  const [osVersion, setOsVersion] = useState("");
   const [buildVersion, setBuildVersion] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -82,6 +84,7 @@ export default function EditSessionPage() {
 
       setTesterName(parsed.testerName ?? "");
       setDevice(parsed.device ?? "");
+      setOsVersion(parsed.osVersion ?? "");
       setBuildVersion(parsed.buildVersion ?? "");
       setTitle(parsed.title ?? "");
       setDescription(parsed.description ?? "");
@@ -152,6 +155,7 @@ export default function EditSessionPage() {
       ...session,
       testerName: testerName.trim() || undefined,
       device: device.trim() || undefined,
+      osVersion: osVersion.trim() || undefined,
       buildVersion: buildVersion.trim() || undefined,
       title: title.trim() || undefined,
       description: description.trim() || undefined,
@@ -178,6 +182,7 @@ export default function EditSessionPage() {
       ...session,
       testerName: testerName.trim() || undefined,
       device: device.trim() || undefined,
+      osVersion: osVersion.trim() || undefined,
       buildVersion: buildVersion.trim() || undefined,
       title: title.trim() || undefined,
       description: description.trim() || undefined,
@@ -218,7 +223,7 @@ export default function EditSessionPage() {
         </header>
 
         {/* Meta-Daten */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-black">
               Tester-Name
@@ -250,6 +255,17 @@ export default function EditSessionPage() {
               value={buildVersion}
               onChange={(e) => setBuildVersion(e.target.value)}
               placeholder="z.B. 1.0.3 (57)"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-black">
+              iOS/Android Version
+            </label>
+            <input
+              className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
+              value={osVersion}
+              onChange={(e) => setOsVersion(e.target.value)}
+              placeholder="z.B. iOS 18.2 / Android 15"
             />
           </div>
         </section>

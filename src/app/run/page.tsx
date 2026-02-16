@@ -13,6 +13,7 @@ type TestSession = {
   id: string;
   testerName: string;
   device: string;
+  osVersion?: string;
   buildVersion?: string;
   title?: string;
   description?: string;
@@ -102,6 +103,7 @@ export default function RunSetupPage() {
   const [testerName, setTesterName] = useState("");
   const [buildVersion, setBuildVersion] = useState("");
   const [device, setDevice] = useState("");
+  const [osVersion, setOsVersion] = useState("");
   const [planTitle, setPlanTitle] = useState("");
   const [planDescription, setPlanDescription] = useState("");
   const [filter, setFilter] = useState("");
@@ -152,6 +154,7 @@ export default function RunSetupPage() {
     const descriptionParam = params.get("description");
     const testerParam = params.get("tester");
     const deviceParam = params.get("device");
+    const osParam = params.get("os");
     const buildParam = params.get("build");
 
     if (testsParam) {
@@ -183,6 +186,9 @@ export default function RunSetupPage() {
     if (typeof deviceParam === "string" && deviceParam.trim().length > 0) {
       setDevice(deviceParam.trim());
     }
+    if (typeof osParam === "string" && osParam.trim().length > 0) {
+      setOsVersion(osParam.trim());
+    }
     if (typeof buildParam === "string" && buildParam.trim().length > 0) {
       setBuildVersion(buildParam.trim());
     }
@@ -197,6 +203,9 @@ export default function RunSetupPage() {
     );
     setDevice((prev) =>
       prev.trim().length > 0 ? prev : (activeSession.device ?? "")
+    );
+    setOsVersion((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.osVersion ?? "")
     );
     setBuildVersion((prev) =>
       prev.trim().length > 0 ? prev : (activeSession.buildVersion ?? "")
@@ -578,6 +587,7 @@ export default function RunSetupPage() {
       id: sessionId,
       testerName: testerName.trim(),
       device: device.trim(),
+      osVersion: osVersion.trim(),
       buildVersion: buildVersion.trim(),
       createdAt,
       testIds: orderedTestIds,
@@ -664,6 +674,14 @@ export default function RunSetupPage() {
                     </span>
                   </p>
                 )}
+                {activeSession.osVersion && (
+                  <p className="text-xs text-blue-900">
+                    iOS/Android Version:{" "}
+                    <span className="font-semibold">
+                      {activeSession.osVersion}
+                    </span>
+                  </p>
+                )}
                 {activeSession.buildVersion && (
                   <p className="text-xs text-blue-900">
                     Build-Version:{" "}
@@ -722,7 +740,7 @@ export default function RunSetupPage() {
         )}
 
         {/* Meta-Infos zur Session */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-black">
               Tester-Name
@@ -744,6 +762,18 @@ export default function RunSetupPage() {
               value={device}
               onChange={(e) => setDevice(e.target.value)}
               placeholder="z.B. iPhone 15"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-black">
+              iOS/Android Version
+            </label>
+            <input
+              className="w-full border border-slate-300 rounded-md p-2 text-sm text-black placeholder-slate-600"
+              value={osVersion}
+              onChange={(e) => setOsVersion(e.target.value)}
+              placeholder="z.B. iOS 18.2 / Android 15"
             />
           </div>
 
@@ -1043,6 +1073,9 @@ export default function RunSetupPage() {
                 }
                 if (device.trim().length > 0) {
                   urlObj.searchParams.set("device", device.trim());
+                }
+                if (osVersion.trim().length > 0) {
+                  urlObj.searchParams.set("os", osVersion.trim());
                 }
                 if (buildVersion.trim().length > 0) {
                   urlObj.searchParams.set("build", buildVersion.trim());
