@@ -37,6 +37,19 @@ type TestPlan = {
   testIds: string[];
 };
 
+type StoredStepResult = {
+  status?: "pending" | "ok" | "nok" | "NA" | string;
+};
+
+function isTestCompleted(stepMap: Record<string, StoredStepResult> | undefined): boolean {
+  if (!stepMap) return false;
+  const values = Object.values(stepMap);
+  if (values.length === 0) return false;
+  return values.every(
+    (s) => s && (s.status === "ok" || s.status === "nok" || s.status === "NA")
+  );
+}
+
 export default function RunSetupPage() {
   const router = useRouter();
   const [testcases, setTestcases] = useState<TestCase[]>([]);
@@ -174,6 +187,30 @@ export default function RunSetupPage() {
       setBuildVersion(buildParam.trim());
     }
   }, []);
+
+  // Meta-Felder aus der aktiven Session vorbefüllen, damit beim Verlassen eines Tests nichts "verschwindet".
+  useEffect(() => {
+    if (!activeSession) return;
+
+    setTesterName((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.testerName ?? "")
+    );
+    setDevice((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.device ?? "")
+    );
+    setBuildVersion((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.buildVersion ?? "")
+    );
+    setPlanTitle((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.title ?? "")
+    );
+    setPlanDescription((prev) =>
+      prev.trim().length > 0 ? prev : (activeSession.description ?? "")
+    );
+    setSelectedIds((prev) =>
+      prev.length > 0 ? prev : Array.isArray(activeSession.testIds) ? activeSession.testIds : []
+    );
+  }, [activeSession]);
 
   const uniqueTestcases = useMemo(() => {
     const seen = new Set<string>();
@@ -393,7 +430,9 @@ export default function RunSetupPage() {
       return;
     }
 
-    const doneCount = Object.keys(results).length;
+    const doneCount = testIds.filter((testId) =>
+      isTestCompleted(results[testId] as Record<string, StoredStepResult> | undefined)
+    ).length;
     const total = testIds.length;
     const allDone = total > 0 && doneCount >= total;
 
@@ -644,7 +683,11 @@ export default function RunSetupPage() {
                 {(() => {
                   const testIds: string[] = activeSession.testIds ?? [];
                   const results = activeSession.results ?? {};
-                  const doneCount = Object.keys(results).length;
+                  const doneCount = testIds.filter((testId) =>
+                    isTestCompleted(
+                      results[testId] as Record<string, StoredStepResult> | undefined
+                    )
+                  ).length;
                   const total = testIds.length;
 
                   return (

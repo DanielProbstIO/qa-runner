@@ -18,6 +18,12 @@ type StepResult = {
 };
 
 type SessionData = {
+  id?: string;
+  testerName?: string;
+  device?: string;
+  buildVersion?: string;
+  title?: string;
+  description?: string;
   results?: Record<string, Record<string, StepResult>>;
   testIds?: string[];
   currentIndex?: number;
@@ -222,6 +228,30 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
   const shouldWarnOnLeave = dirty && ratedSteps > 0 && pendingSteps > 0;
 
+  const persistStepResults = useCallback(
+    (resultsToPersist: Record<string, StepResult>) => {
+      if (typeof window === "undefined") return false;
+
+      const sessionId = window.localStorage.getItem("activeSessionId");
+      if (!sessionId) return false;
+
+      const raw = window.localStorage.getItem(sessionId);
+      if (!raw) return false;
+
+      try {
+        const session = JSON.parse(raw) as SessionData;
+        session.results = session.results || {};
+        session.results[test.id] = resultsToPersist;
+        window.localStorage.setItem(sessionId, JSON.stringify(session));
+        return true;
+      } catch (e) {
+        console.error("Auto-Save der Session fehlgeschlagen:", e);
+        return false;
+      }
+    },
+    [test.id]
+  );
+
   useEffect(() => {
     if (!preview) return;
     return () => {
@@ -240,6 +270,16 @@ export default function TestRunner({ test }: TestRunnerProps) {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [shouldWarnOnLeave]);
+
+  useEffect(() => {
+    if (Object.keys(stepResults).length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      persistStepResults(stepResults);
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [stepResults, persistStepResults]);
 
   const updateStepResult = useCallback((key: string, partial: Partial<StepResult>) => {
     setStepResults((prev) => {
@@ -494,6 +534,11 @@ export default function TestRunner({ test }: TestRunnerProps) {
     } else {
       router.push(`/results/${sessionId}`);
     }
+  }
+
+  function handleAdjustPlan() {
+    persistStepResults(stepResults);
+    router.push("/run?edit=1");
   }
 
   return (
@@ -763,17 +808,27 @@ export default function TestRunner({ test }: TestRunnerProps) {
         </table>
       </div>
 
-      <div className="flex justify-between gap-2 pt-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (!activeStepKey) return;
-            focusNextVisibleStep(activeStepKey);
-          }}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100"
-        >
-          Naechster Step (N)
-        </button>
+      <div className="flex flex-wrap justify-between gap-2 pt-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!activeStepKey) return;
+              focusNextVisibleStep(activeStepKey);
+            }}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100"
+          >
+            Naechster Step (N)
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAdjustPlan}
+            className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+          >
+            Testplan anpassen
+          </button>
+        </div>
 
         <button
           type="button"
