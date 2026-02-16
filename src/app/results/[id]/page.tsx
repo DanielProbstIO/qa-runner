@@ -372,6 +372,23 @@ export default function ResultPage() {
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.removeItem("activeSessionId");
+                    }
+                  } catch (e) {
+                    console.error("Konnte activeSessionId nicht zurücksetzen:", e);
+                  }
+                  router.push("/run");
+                }}
+                className="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                Neuer Test
+              </button>
+
               {/* Session im Test-Runner weiterbearbeiten */}
 <button
   type="button"
@@ -673,6 +690,23 @@ export default function ResultPage() {
             </header>
 
             <div className="mt-1 flex flex-col items-end gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    if (typeof window !== "undefined") {
+                      window.localStorage.removeItem("activeSessionId");
+                    }
+                  } catch (e) {
+                    console.error("Konnte activeSessionId nicht zurücksetzen:", e);
+                  }
+                  router.push("/run");
+                }}
+                className="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                Neuer Test
+              </button>
+
               <button
                 type="button"
                 onClick={() =>
