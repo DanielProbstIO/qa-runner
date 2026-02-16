@@ -48,6 +48,8 @@ type SessionMetaForm = {
   buildVersion: string;
 };
 
+type StepEdits = Record<string, Partial<StepResult>>;
+
 // --- Testcase & Step Meta aus der API ---
 type VaultStepMeta = {
   id: string;
@@ -133,6 +135,9 @@ export default function ResultPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [testcases, setTestcases] = useState<VaultTestcaseMeta[] | null>(null);
   const [isMetaEditOpen, setMetaEditOpen] = useState(false);
+  const [isResultEditOpen, setResultEditOpen] = useState(false);
+  const [sessionStepEdits, setSessionStepEdits] = useState<StepEdits>({});
+  const [singleStepEdits, setSingleStepEdits] = useState<StepEdits>({});
   const [metaForm, setMetaForm] = useState<SessionMetaForm>({
     title: "",
     description: "",
@@ -211,10 +216,14 @@ export default function ResultPage() {
   const isSession = id.startsWith("session_");
 
   let raw: string | null = null;
+  let storageKeyUsed: string | null = null;
 
   if (isSession) {
     // 1️⃣ Direkt versuchen, mit der ID aus der URL
     raw = window.localStorage.getItem(id);
+    if (raw) {
+      storageKeyUsed = id;
+    }
 
     // 2️⃣ Fallback: activeSessionId
     if (!raw) {
@@ -226,6 +235,9 @@ export default function ResultPage() {
           { urlId: id, activeId }
         );
         raw = window.localStorage.getItem(activeId);
+        if (raw) {
+          storageKeyUsed = activeId;
+        }
       }
 
       const allKeys = Object.keys(window.localStorage);
@@ -234,6 +246,9 @@ export default function ResultPage() {
   } else {
     const storageKey = `result_${id}`;
     raw = window.localStorage.getItem(storageKey);
+    if (raw) {
+      storageKeyUsed = storageKey;
+    }
   }
 
   if (!raw) {
@@ -337,11 +352,21 @@ export default function ResultPage() {
 
     function saveMetaEditor() {
       if (typeof window === "undefined") return;
-      const sessionId = session?.id || id;
+      const sessionId = storageKeyUsed || session?.id || id;
       if (!sessionId) return;
 
+      const rawSession = window.localStorage.getItem(sessionId);
+      if (!rawSession) return;
+
+      let currentSession: SessionRun;
+      try {
+        currentSession = JSON.parse(rawSession) as SessionRun;
+      } catch {
+        return;
+      }
+
       const updatedSession: SessionRun = {
-        ...session,
+        ...currentSession,
         title: metaForm.title.trim() || undefined,
         description: metaForm.description.trim() || undefined,
         testerName: metaForm.testerName.trim() || undefined,
@@ -352,6 +377,76 @@ export default function ResultPage() {
 
       window.localStorage.setItem(sessionId, JSON.stringify(updatedSession));
       setMetaEditOpen(false);
+      window.location.reload();
+    }
+
+    function makeSessionEditKey(testId: string, stepId: string): string {
+      return `${testId}::${stepId}`;
+    }
+
+    function getEditedSessionStep(
+      testId: string,
+      stepId: string,
+      base: StepResult
+    ): StepResult {
+      const edit = sessionStepEdits[makeSessionEditKey(testId, stepId)];
+      if (!edit) return base;
+      return {
+        ...base,
+        ...edit,
+      };
+    }
+
+    function updateSessionStep(
+      testId: string,
+      stepId: string,
+      partial: Partial<StepResult>
+    ) {
+      const k = makeSessionEditKey(testId, stepId);
+      setSessionStepEdits((prev) => ({
+        ...prev,
+        [k]: { ...(prev[k] || {}), ...partial },
+      }));
+    }
+
+    function discardSessionStepEdits() {
+      setSessionStepEdits({});
+      setResultEditOpen(false);
+    }
+
+    function saveSessionStepEdits() {
+      const targetKey = storageKeyUsed || session.id;
+      if (!targetKey) return;
+
+      const rawSession = window.localStorage.getItem(targetKey);
+      if (!rawSession) return;
+
+      let currentSession: SessionRun;
+      try {
+        currentSession = JSON.parse(rawSession) as SessionRun;
+      } catch {
+        return;
+      }
+
+      if (!currentSession.results) return;
+
+      for (const [compoundKey, patch] of Object.entries(sessionStepEdits)) {
+        const [testId, stepId] = compoundKey.split("::");
+        if (!testId || !stepId) continue;
+        const testMap = currentSession.results[testId];
+        if (!testMap || !testMap[stepId]) continue;
+
+        testMap[stepId] = {
+          ...testMap[stepId],
+          ...patch,
+        };
+      }
+
+      window.localStorage.setItem(targetKey, JSON.stringify(currentSession));
+
+      setSessionStepEdits({});
+      setResultEditOpen(false);
+      window.location.reload();
     }
 
     return (
@@ -632,6 +727,35 @@ export default function ResultPage() {
           )}
 
           <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700 print:hidden">
+            <div className="mr-auto flex items-center gap-2">
+              {!isResultEditOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setResultEditOpen(true)}
+                  className="px-3 py-1 rounded-md text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700"
+                >
+                  Testergebnisse bearbeiten
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={saveSessionStepEdits}
+                    className="px-3 py-1 rounded-md text-xs font-semibold bg-amber-700 text-white hover:bg-amber-800"
+                  >
+                    Änderungen speichern
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardSessionStepEdits}
+                    className="px-3 py-1 rounded-md text-xs font-semibold border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                  >
+                    Änderungen verwerfen
+                  </button>
+                </>
+              )}
+            </div>
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -661,7 +785,10 @@ export default function ResultPage() {
 
             {testIds.map((testId) => {
               const stepMap = session!.results?.[testId] ?? {};
-              const allSteps = Object.entries(stepMap);
+              const allSteps = Object.entries(stepMap).map(([stepId, base]) => [
+                stepId,
+                getEditedSessionStep(testId, stepId, base),
+              ] as const);
 
               const okCount = allSteps.filter(
                 ([, s]) => s.status === "ok"
@@ -771,6 +898,42 @@ export default function ResultPage() {
                               </p>
                             )}
 
+                            {isResultEditOpen && (
+                              <div className="mt-2 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-2 print:hidden">
+                                <div className="flex flex-wrap gap-2">
+                                  {(["ok", "nok", "NA"] as const).map((status) => (
+                                    <button
+                                      key={status}
+                                      type="button"
+                                      onClick={() =>
+                                        updateSessionStep(testId, stepId, { status })
+                                      }
+                                      className={[
+                                        "px-2 py-1 rounded-md text-[11px] font-semibold border",
+                                        s.status === status
+                                          ? "bg-amber-700 border-amber-800 text-white"
+                                          : "bg-white border-amber-300 text-amber-800 hover:bg-amber-100",
+                                      ].join(" ")}
+                                    >
+                                      {status.toUpperCase()}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                <textarea
+                                  className="w-full border border-amber-300 rounded-md p-2 text-xs text-black bg-white"
+                                  rows={2}
+                                  value={s.comment || ""}
+                                  onChange={(e) =>
+                                    updateSessionStep(testId, stepId, {
+                                      comment: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Kommentar anpassen..."
+                                />
+                              </div>
+                            )}
+
                             {s.screenshotUrl && (
                               <p className="mt-1">
                                 <span className="font-semibold">
@@ -818,10 +981,54 @@ export default function ResultPage() {
 
   // 🔹 Einzel-Testlauf (altes Format)
   if (!isSession && singleRun) {
-    const allSteps = Object.entries(singleRun.results);
+    const allSteps = Object.entries(singleRun.results).map(([stepId, base]) => [
+      stepId,
+      {
+        ...base,
+        ...(singleStepEdits[stepId] || {}),
+      },
+    ] as const);
     const steps = showOnlyErrors
       ? allSteps.filter(([, s]) => s.status === "nok")
       : allSteps;
+
+    function updateSingleStep(stepId: string, partial: Partial<StepResult>) {
+      setSingleStepEdits((prev) => ({
+        ...prev,
+        [stepId]: { ...(prev[stepId] || {}), ...partial },
+      }));
+    }
+
+    function discardSingleEdits() {
+      setSingleStepEdits({});
+      setResultEditOpen(false);
+    }
+
+    function saveSingleEdits() {
+      const targetKey = storageKeyUsed || `result_${id}`;
+      const rawSingle = window.localStorage.getItem(targetKey);
+      if (!rawSingle) return;
+
+      let currentSingleRun: SingleRun;
+      try {
+        currentSingleRun = JSON.parse(rawSingle) as SingleRun;
+      } catch {
+        return;
+      }
+
+      for (const [stepId, patch] of Object.entries(singleStepEdits)) {
+        if (!currentSingleRun.results[stepId]) continue;
+        currentSingleRun.results[stepId] = {
+          ...currentSingleRun.results[stepId],
+          ...patch,
+        };
+      }
+
+      window.localStorage.setItem(targetKey, JSON.stringify(currentSingleRun));
+      setSingleStepEdits({});
+      setResultEditOpen(false);
+      window.location.reload();
+    }
 
     return (
       <main className="min-h-screen bg-slate-50 flex justify-center p-8">
@@ -905,6 +1112,35 @@ export default function ResultPage() {
           </div>
 
           <div className="flex justify-end mt-2 gap-6 text-xs text-slate-700 print:hidden">
+            <div className="mr-auto flex items-center gap-2">
+              {!isResultEditOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setResultEditOpen(true)}
+                  className="px-3 py-1 rounded-md text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700"
+                >
+                  Testergebnisse bearbeiten
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={saveSingleEdits}
+                    className="px-3 py-1 rounded-md text-xs font-semibold bg-amber-700 text-white hover:bg-amber-800"
+                  >
+                    Änderungen speichern
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardSingleEdits}
+                    className="px-3 py-1 rounded-md text-xs font-semibold border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                  >
+                    Änderungen verwerfen
+                  </button>
+                </>
+              )}
+            </div>
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -982,6 +1218,40 @@ export default function ResultPage() {
                       <span className="font-semibold">Kommentar:</span>{" "}
                       {info.comment}
                     </p>
+                  )}
+
+                  {isResultEditOpen && (
+                    <div className="mt-2 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-2 print:hidden">
+                      <div className="flex flex-wrap gap-2">
+                        {(["ok", "nok", "NA"] as const).map((status) => (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => updateSingleStep(stepId, { status })}
+                            className={[
+                              "px-2 py-1 rounded-md text-[11px] font-semibold border",
+                              info.status === status
+                                ? "bg-amber-700 border-amber-800 text-white"
+                                : "bg-white border-amber-300 text-amber-800 hover:bg-amber-100",
+                            ].join(" ")}
+                          >
+                            {status.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+
+                      <textarea
+                        className="w-full border border-amber-300 rounded-md p-2 text-xs text-black bg-white"
+                        rows={2}
+                        value={info.comment || ""}
+                        onChange={(e) =>
+                          updateSingleStep(stepId, {
+                            comment: e.target.value,
+                          })
+                        }
+                        placeholder="Kommentar anpassen..."
+                      />
+                    </div>
                   )}
 
                   {info.screenshotUrl && (
