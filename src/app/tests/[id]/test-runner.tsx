@@ -143,6 +143,14 @@ export default function TestRunner({ test }: TestRunnerProps) {
     return raw.replace(/\*\*`= this\.testCaseId`\*\*/g, test.id);
   };
 
+  const normalizeActionText = (raw: string | undefined): string => {
+    const resolved = normalizeReference(raw || "");
+    return resolved
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/\s*;\s*/g, ";\n")
+      .trim();
+  };
+
   function makeStepKey(step: any, index: number): string {
     const raw =
       step.reference ||
@@ -330,14 +338,14 @@ export default function TestRunner({ test }: TestRunnerProps) {
     <section className="space-y-4">
       {/* Tabelle der Steps */}
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-        <table className="w-full text-sm border-separate border-spacing-0">
+        <table className="w-full table-fixed text-sm border-separate border-spacing-0">
           <thead className="bg-slate-100 text-left text-xs uppercase text-slate-700">
             <tr>
               <th className="px-3 py-2 w-24 border-b border-slate-200">Status</th>
-              <th className="px-3 py-2 border-b border-slate-200">Referenz</th>
-              <th className="px-3 py-2 border-b border-slate-200">Ausgangspunkt</th>
-              <th className="px-3 py-2 border-b border-slate-200">Vorgang</th>
-              <th className="px-3 py-2 border-b border-slate-200 w-1/2">Erwartetes Verhalten / Kommentar / Screenshot</th>
+              <th className="px-3 py-2 w-28 border-b border-slate-200">Referenz</th>
+              <th className="px-3 py-2 w-44 border-b border-slate-200">Ausgangspunkt</th>
+              <th className="px-3 py-2 w-[26%] border-b border-slate-200 text-slate-900">Vorgang</th>
+              <th className="px-3 py-2 w-[38%] border-b border-slate-200">Erwartetes Verhalten / Kommentar / Screenshot</th>
             </tr>
           </thead>
           <tbody>
@@ -414,7 +422,14 @@ export default function TestRunner({ test }: TestRunnerProps) {
 
                   {/* Vorgang */}
                   <td className="px-3 py-3 text-xs text-slate-900">
-                    {normalizeReference(step.action || step.vorgang || "")}
+                    <div className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-800 mb-1">
+                        Aktion
+                      </p>
+                      <p className="text-sm font-semibold leading-6 text-slate-900 whitespace-pre-line">
+                        {normalizeActionText(step.action || step.vorgang || "")}
+                      </p>
+                    </div>
                   </td>
 
                   {/* Erwartetes Verhalten + Kommentar + Screenshot */}

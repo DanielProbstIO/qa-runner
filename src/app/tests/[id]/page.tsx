@@ -23,7 +23,7 @@ export default async function TestPage({
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center p-4">
-      <div className="w-full max-w-3xl bg-white shadow-md rounded-xl p-6 space-y-4">
+      <div className="w-full max-w-[1600px] bg-white shadow-md rounded-xl p-6 space-y-4">
         <div className="border rounded-xl bg-slate-50 px-4 py-3">
           <h1 className="text-xl font-semibold text-black mb-1">
             {test!.id} — {test!.title}
